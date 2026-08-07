@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RPChat - Part 1+2 (Core + Sổ Tay/Sự Kiện RAG + Sử Gia)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { background:#0f1115; }
+  ::-webkit-scrollbar { width:6px; }
+  ::-webkit-scrollbar-thumb { background:#334155; border-radius:4px; }
+  .msg-actions { display:none; }
+  .msg-wrap.show-actions .msg-actions { display:flex; }
+  textarea { resize: vertical; }
+</style>
+</head>
+<body class="min-h-screen text-slate-200 font-sans">
+
+  <!-- ===================== LOGIN SCREEN ===================== -->
+  <div id="loginScreen" class="min-h-screen flex items-center justify-center">
+    <div class="bg-slate-800/60 border border-slate-700 rounded-2xl p-8 w-full max-w-sm text-center">
+      <h1 class="text-2xl font-bold mb-2">RPChat</h1>
+      <p class="text-slate-400 mb-6 text-sm">Đăng nhập để đồng bộ dữ liệu qua Firestore</p>
+      <button id="btnGoogleLogin"
+        class="w-full bg-white text-slate-900 font-semibold py-2.5 rounded-xl hover:bg-slate-100 transition">
+        Đăng nhập với Google
+      </button>
+      <p id="loginError" class="text-red-400 text-xs mt-3 hidden"></p>
+    </div>
+  </div>
+
+  <!-- ===================== MAIN APP ===================== -->
+  <div id="appScreen" class="hidden h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-slate-900/70 backdrop-blur">
+      <div class="flex items-center gap-2">
+        <img id="userAvatar" class="w-8 h-8 rounded-full" src="" alt="" />
+        <span id="userName" class="text-sm text-slate-300"></span>
+      </div>
+      <div class="flex items-center gap-2">
+        <select id="activePaceSelect" class="text-xs bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5">
+          <option value="pace1">Nhịp: Nhanh/Hỗn loạn</option>
+          <option value="pace2">Nhịp: Trò chuyện thường ngày</option>
+          <option value="pace3">Nhịp: Sâu lắng</option>
+          <option value="pace4">Nhịp: Đám đông</option>
+        </select>
+        <button id="btnOpenNotebook" class="text-sm px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700">📒 Sổ Tay/Sự Kiện</button>
+        <button id="btnOpenSettings" class="text-sm px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700">⚙ Cài đặt</button>
+        <button id="btnLogout" class="text-sm px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-red-700/60">Đăng xuất</button>
+      </div>
+    </header>
+
+    <!-- Chat area -->
+    <main id="chatArea" class="flex-1 overflow-y-auto px-3 py-4 space-y-3"></main>
+
+    <!-- Input row -->
+    <div class="border-t border-slate-800 p-3 bg-slate-900/70">
+      <div class="flex items-end gap-2">
+        <button id="btnSend"
+          class="shrink-0 h-11 w-11 rounded-xl bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center transition disabled:opacity-40">
+          ➤
+        </button>
+        <textarea id="inputText" rows="1"
+          class="flex-1 resize-none bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
+          placeholder="Nhập tin nhắn... (Enter để gửi, Shift+Enter xuống dòng)"></textarea>
+      </div>
+      <p id="sendStatus" class="text-xs text-slate-500 mt-1 h-4"></p>
+    </div>
+  </div>
+
+  <!-- ===================== SETTINGS MODAL ===================== -->
+  <div id="settingsModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-bold">Cài đặt hệ thống</h2>
+        <button id="btnCloseSettings" class="text-slate-400 hover:text-white text-xl leading-none">✕</button>
+      </div>
+
+      <!-- API KEYS -->
+      <section class="mb-6">
+        <h3 class="text-sm font-semibold text-indigo-400 mb-2">API Keys (1–4)</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input id="apiKey1" placeholder="API Key 1 (AI Chính / Reviewer / Embedding)" class="input-field" />
+          <input id="apiKey2" placeholder="API Key 2 (Sử Gia / Đạo Diễn)" class="input-field" />
+          <input id="apiKey3" placeholder="API Key 3 (NPC Agent 1 & 2)" class="input-field" />
+          <input id="apiKey4" placeholder="API Key 4 (NPC Agent 3 / Synthesizer)" class="input-field" />
+        </div>
+      </section>
+
+      <!-- USER PROFILE -->
+      <section class="mb-6">
+        <h3 class="text-sm font-semibold text-indigo-400 mb-2">Hồ sơ người dùng / Nhân vật (User Profile)</h3>
+        <textarea id="userProfile" rows="3" class="input-field w-full" placeholder="Mô tả nhân vật, bối cảnh, thông tin nền..."></textarea>
+      </section>
+
+      <!-- SYSTEM PROMPTS A-D -->
+      <section class="mb-6">
+        <h3 class="text-sm font-semibold text-indigo-400 mb-2">System Prompts chính</h3>
+        <div class="space-y-3">
+          <div><label class="label-sm">A. AI Chính</label><textarea id="promptA" rows="3" class="input-field w-full"></textarea></div>
+          <div><label class="label-sm">B. Reviewer</label><textarea id="promptB" rows="2" class="input-field w-full"></textarea></div>
+          <div><label class="label-sm">C. Sử Gia (Summarizer)</label><textarea id="promptC" rows="2" class="input-field w-full"></textarea></div>
+          <div><label class="label-sm">D. Đạo Diễn (Plot Twist)</label><textarea id="promptD" rows="2" class="input-field w-full"></textarea></div>
+        </div>
+      </section>
+
+      <!-- SYSTEM PROMPTS E-H (NPC - lưu trước, dùng ở Part 3) -->
+      <section class="mb-6">
+        <h3 class="text-sm font-semibold text-slate-400 mb-2">NPC Agents (kích hoạt logic ở Part 3, lưu trước tại đây)</h3>
+        <div class="space-y-3">
+          <div><label class="label-sm">E. NPC Agent 1 – Hành động/Vật lý</label><textarea id="promptE" rows="2" class="input-field w-full"></textarea></div>
+          <div><label class="label-sm">F. NPC Agent 2 – Tâm lý/Cảm xúc ngầm</label><textarea id="promptF" rows="2" class="input-field w-full"></textarea></div>
+          <div><label class="label-sm">G. NPC Agent 3 – Bối cảnh/Môi trường</label><textarea id="promptG" rows="2" class="input-field w-full"></textarea></div>
+          <div><label class="label-sm">H. NPC Synthesizer – Lọc & Tổng hợp</label><textarea id="promptH" rows="2" class="input-field w-full"></textarea></div>
+        </div>
+      </section>
+
+      <!-- MẪU NHỊP THOẠI -->
+      <section class="mb-6">
+        <h3 class="text-sm font-semibold text-indigo-400 mb-2">Mẫu nhịp thoại [MẪU NHỊP THOẠI]</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div><label class="label-sm">Nhanh / Hỗn loạn</label><textarea id="pace1" rows="2" class="input-field w-full"></textarea></div>
+          <div><label class="label-sm">Khá nhanh / Trò chuyện thường ngày</label><textarea id="pace2" rows="2" class="input-field w-full"></textarea></div>
+          <div><label class="label-sm">Hơi chậm / Trò chuyện sâu lắng</label><textarea id="pace3" rows="2" class="input-field w-full"></textarea></div>
+          <div><label class="label-sm">Hỗn tạp / Đám đông</label><textarea id="pace4" rows="2" class="input-field w-full"></textarea></div>
+        </div>
+      </section>
+
+      <div class="flex items-center justify-between">
+        <p id="settingsStatus" class="text-xs text-slate-500"></p>
+        <button id="btnSaveSettings" class="bg-indigo-600 hover:bg-indigo-500 px-5 py-2 rounded-xl text-sm font-semibold">Lưu cài đặt</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== NOTEBOOK / EVENTS MODAL ===================== -->
+  <div id="notebookModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-bold">Sổ Tay & Sự Kiện</h2>
+        <button id="btnCloseNotebook" class="text-slate-400 hover:text-white text-xl leading-none">✕</button>
+      </div>
+
+      <div class="flex gap-2 mb-4">
+        <button id="tabNotebookBtn" class="tab-btn active px-4 py-1.5 rounded-lg text-sm bg-slate-800">Sổ Tay</button>
+        <button id="tabEventsBtn" class="tab-btn px-4 py-1.5 rounded-lg text-sm bg-slate-800">Sự Kiện</button>
+      </div>
+
+      <!-- FORM THÊM MỚI -->
+      <div class="bg-slate-800/50 rounded-xl p-4 mb-4">
+        <label class="label-sm">Từ khóa kích hoạt (cách nhau bằng dấu phẩy)</label>
+        <input id="entryKeywords" class="input-field w-full mb-2" placeholder="vd: rừng cấm, lời nguyền, ngôi làng" />
+        <label class="label-sm">Nội dung (không giới hạn ký tự)</label>
+        <textarea id="entryContent" rows="6" class="input-field w-full"></textarea>
+        <div class="flex items-center justify-between mt-2">
+          <span id="entryCharCount" class="text-xs text-slate-500">0 ký tự</span>
+          <button id="btnAddEntry" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-1.5 rounded-lg text-sm font-semibold">+ Thêm entry</button>
+        </div>
+        <p id="entryStatus" class="text-xs text-slate-500 mt-1"></p>
+      </div>
+
+      <!-- DANH SÁCH -->
+      <div id="entryList" class="space-y-2"></div>
+    </div>
+  </div>
+
+<style>
+  .input-field {
+    background:#1e293b; border:1px solid #334155; border-radius:0.75rem;
+    padding:0.5rem 0.75rem; font-size:0.875rem; color:#e2e8f0; outline:none;
+  }
+  .input-field:focus { box-shadow:0 0 0 2px #4f46e5; }
+  .label-sm { display:block; font-size:0.75rem; color:#94a3b8; margin-bottom:0.25rem; }
+  .tab-btn.active { background:#4f46e5 !important; }
+  .entry-item { background:#1e293b; border:1px solid #334155; border-radius:0.75rem; padding:0.75rem; }
+</style>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import {
+  getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import {
+  getFirestore, doc, setDoc, getDoc,
+  collection, addDoc, onSnapshot, query, orderBy,
+  deleteDoc, updateDoc, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+// ---------------- FIREBASE INIT ----------------
+const firebaseConfig = {
+  apiKey: "AIzaSyBUsOEzANf2SfFE83GOMETGm0v8MRgXUOc",
+  authDomain: "ai-rp-data.firebaseapp.com",
+  projectId: "ai-rp-data",
+  storageBucket: "ai-rp-data.firebasestorage.app",
+  messagingSenderId: "286313956650",
+  appId: "1:286313956650:web:135c662ed4092321ad0a53"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+// ---------------- CẤU HÌNH GIỚI HẠN TURN ----------------
+// 1 turn = 1 tin nhắn (role user hoặc model) trong messagesCache
+const MAIN_AI_CONTEXT_TURNS = 36;   // AI Chính chỉ đọc 36 turn gần nhất mỗi lần gọi
+const MAX_STORED_TURNS = 250;       // Vượt mốc này -> tự xóa bớt turn cũ nhất trong Firestore
+const HISTORIAN_READ_TURNS = 80;    // Sử Gia đọc tới 80 turn cũ để tóm tắt thành Rolling Summary
+
+let currentUser = null;
+let unsubMessages = null;
+let currentSettings = defaultSettings();
+let messagesCache = []; // nguồn dữ liệu thật cho chatHistory, KHÔNG đọc từ DOM
+let isSending = false; // true trong lúc đang chờ AI trả lời -> khóa Sửa/Xóa tin nhắn cuối
+// FIX bug 3: onSnapshot là async, không đảm bảo đã chạy xong ngay sau addDoc() ở handleSend()
+// -> messagesCache.length có thể bị "trễ" 1-2 tin nhắn tại thời điểm maybeRunHistorian() được gọi,
+// khiến ngưỡng SUMMARY_TRIGGER_EVERY lệch nhẹ. knownMessageCount được tăng THỦ CÔNG, đồng bộ,
+// ngay sau mỗi addDoc thành công trong handleSend() -> luôn chính xác tại thời điểm cần dùng.
+// Mỗi lần onSnapshot bắn về (kể cả do sửa/xóa/đăng nhập lại) sẽ tự đồng bộ lại giá trị này.
+let knownMessageCount = 0;
+
+function defaultSettings() {
+  return {
+    apiKey1:"", apiKey2:"", apiKey3:"", apiKey4:"",
+    userProfile:"",
+    promptA:"", promptB:"", promptC:"", promptD:"",
+    promptE:"", promptF:"", promptG:"", promptH:"",
+    pace1:"", pace2:"", pace3:"", pace4:"",
+    activePace:"pace2"
+  };
+}
+
+// ---------------- AUTH ----------------
+document.getElementById("btnGoogleLogin").onclick = async () => {
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (e) {
+    const el = document.getElementById("loginError");
+    el.textContent = "Đăng nhập lỗi: " + e.message;
+    el.classList.remove("hidden");
+  }
+};
+
+document.getElementById("btnLogout").onclick = () => signOut(auth);
+
+onAuthStateChanged(auth, async (user) => {
+  currentUser = user;
+  if (user) {
+    document.getElementById("loginScreen").classList.add("hidden");
+    document.getElementById("appScreen").classList.remove("hidden");
+    document.getElementById("userName").textContent = user.displayName || user.email;
+    document.getElementById("userAvatar").src = user.photoURL || "";
+    await loadSettings();
+    await loadRollingSummary();
+    await loadDirectorState();
+    await loadNpcState();
+    listenMessages();
+    listenEntries();
+  } else {
+    document.getElementById("loginScreen").classList.remove("hidden");
+    document.getElementById("appScreen").classList.add("hidden");
+    if (unsubMessages) unsubMessages();
+    if (unsubNotebook) unsubNotebook();
+    if (unsubEvents) unsubEvents();
+  }
+});
+
+// ---------------- SETTINGS: FIRESTORE SYNC ----------------
+function settingsDocRef() {
+  return doc(db, "users", currentUser.uid, "settings", "main");
+}
+
+async function loadSettings() {
+  const snap = await getDoc(settingsDocRef());
+  if (snap.exists()) {
+    currentSettings = { ...defaultSettings(), ...snap.data() };
+  } else {
+    currentSettings = defaultSettings();
+  }
+  Object.keys(currentSettings).forEach(key => {
+    const el = document.getElementById(key);
+    if (el) el.value = currentSettings[key];
+  });
+  document.getElementById("activePaceSelect").value = currentSettings.activePace || "pace2";
+}
+
+document.getElementById("activePaceSelect").onchange = async (e) => {
+  currentSettings.activePace = e.target.value;
+  try {
+    await setDoc(settingsDocRef(), { activePace: e.target.value }, { merge: true });
+  } catch (err) {
+    console.error("Lỗi lưu activePace:", err);
+  }
+};
+
+async function saveSettings() {
+  const statusEl = document.getElementById("settingsStatus");
+  statusEl.textContent = "Đang lưu...";
+  const data = {};
+  Object.keys(defaultSettings()).forEach(key => {
+    if (key === "activePace") { data[key] = currentSettings.activePace || "pace2"; return; }
+    const el = document.getElementById(key);
+    data[key] = el ? el.value : "";
+  });
+  try {
+    await setDoc(settingsDocRef(), data, { merge: true });
+    currentSettings = data;
+    statusEl.textContent = "Đã lưu vào Firestore ✓";
+    setTimeout(() => statusEl.textContent = "", 2000);
+  } catch (e) {
+    statusEl.textContent = "Lỗi khi lưu: " + e.message;
+  }
+}
+
+document.getElementById("btnOpenSettings").onclick = () =>
+  document.getElementById("settingsModal").classList.remove("hidden");
+document.getElementById("btnCloseSettings").onclick = () =>
+  document.getElementById("settingsModal").classList.add("hidden");
+document.getElementById("btnSaveSettings").onclick = saveSettings;
+
+// ---------------- CHAT: FIRESTORE SYNC ----------------
+function messagesColRef() {
+  return collection(db, "users", currentUser.uid, "messages");
+}
+
+// Vẽ lại toàn bộ tin nhắn từ cache hiện có (không cần đợi Firestore bắn snapshot mới).
+// Dùng khi isSending đổi trạng thái, để nút Sửa/Xóa của tin nhắn cuối khóa/mở ngay lập tức.
+function rerenderMessages() {
+  const chatArea = document.getElementById("chatArea");
+  chatArea.innerHTML = "";
+  const total = messagesCache.length;
+  messagesCache.forEach((m, idx) => {
+    renderMessage(m.id, { role: m.role, text: m.text }, idx === total - 1);
+  });
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+function listenMessages() {
+  const q = query(messagesColRef(), orderBy("createdAt", "asc"));
+  unsubMessages = onSnapshot(q, (snap) => {
+    const chatArea = document.getElementById("chatArea");
+    chatArea.innerHTML = "";
+    messagesCache = [];
+    const total = snap.size;
+    snap.docs.forEach((docSnap, idx) => {
+      const data = docSnap.data();
+      messagesCache.push({ id: docSnap.id, role: data.role, text: data.text || "" });
+      renderMessage(docSnap.id, data, idx === total - 1);
+    });
+    chatArea.scrollTop = chatArea.scrollHeight;
+    knownMessageCount = messagesCache.length; // FIX bug 3: đồng bộ lại mỗi khi có snapshot thật
+  });
+}
+
+// ---------------- SỔ TAY & SỰ KIỆN: FIRESTORE SYNC ----------------
+const MAX_EVENT_CHUNKS = 10;       // tối đa 10 đoạn (chunk) sự kiện <=200 ký tự được inject mỗi lượt
+const NOTEBOOK_SEMANTIC_THRESHOLD = 0.5; // ngưỡng cosine similarity tối thiểu để 1 entry Sổ Tay được coi là "liên quan" qua semantic (Sổ Tay không giới hạn số entry nên cần ngưỡng lọc, tránh nhồi toàn bộ sổ tay mỗi lượt)
+let notebookCache = [];
+let eventsCache = [];
+let unsubNotebook = null, unsubEvents = null;
+let activeEntryTab = "notebook"; // "notebook" | "events"
+
+function entryColRef(type) {
+  return collection(db, "users", currentUser.uid, type === "events" ? "events" : "notebook");
+}
+
+function listenEntries() {
+  unsubNotebook = onSnapshot(query(entryColRef("notebook"), orderBy("createdAt", "asc")), (snap) => {
+    notebookCache = [];
+    snap.forEach(d => notebookCache.push({ id: d.id, ...d.data() }));
+    if (activeEntryTab === "notebook") renderEntryList();
+  });
+  unsubEvents = onSnapshot(query(entryColRef("events"), orderBy("createdAt", "asc")), (snap) => {
+    eventsCache = [];
+    snap.forEach(d => eventsCache.push({ id: d.id, ...d.data() }));
+    if (activeEntryTab === "events") renderEntryList();
+  });
+}
+
+function renderEntryList() {
+  // FIX: chốt loại entry (notebook/events) NGAY tại thời điểm render, thay vì đọc biến toàn cục
+  // activeEntryTab lúc bấm Sửa/Xóa. Nếu không chốt, khi người dùng bấm Sửa (chờ prompt + re-embed,
+  // có await) hoặc bấm Xóa rồi đổi tab TRƯỚC KHI request Firestore chạy xong, entry sẽ bị
+  // ghi/xóa nhầm sang collection của tab kia (vì lúc đó activeEntryTab đã đổi giá trị).
+  const listType = activeEntryTab;
+  const list = listType === "notebook" ? notebookCache : eventsCache;
+  const container = document.getElementById("entryList");
+  container.innerHTML = "";
+  if (list.length === 0) {
+    container.innerHTML = `<p class="text-xs text-slate-500">Chưa có entry nào.</p>`;
+    return;
+  }
+  list.forEach(entry => {
+    const div = document.createElement("div");
+    div.className = "entry-item";
+    div.innerHTML = `
+      <div class="flex items-start justify-between gap-2">
+        <div class="flex-1">
+          <p class="text-xs text-indigo-400 mb-1">${escapeHtml(entry.keywords || "")}</p>
+          <p class="text-sm whitespace-pre-wrap">${escapeHtml(entry.content || "")}</p>
+        </div>
+        <div class="flex flex-col gap-1 shrink-0">
+          <button class="text-xs text-slate-400 hover:text-indigo-400 btnEditEntry">Sửa</button>
+          <button class="text-xs text-slate-400 hover:text-red-400 btnDeleteEntry">Xóa</button>
+        </div>
+      </div>`;
+    div.querySelector(".btnEditEntry").onclick = () => editEntry(entry, listType);
+    div.querySelector(".btnDeleteEntry").onclick = () => deleteEntry(entry.id, listType);
+    container.appendChild(div);
+  });
+}
+
+// Tạo mảng {text, embedding} cho từng chunk của 1 entry Sự Kiện (full per-chunk embedding).
+// Lỗi embed 1 chunk KHÔNG làm hỏng cả entry -> chunk đó vẫn được lưu, chỉ mất embedding riêng nó
+// (sẽ tự động rơi vào diện "không match semantic" nhưng vẫn ăn keyword-match nếu entry khớp từ khóa).
+async function buildEventChunks(content, statusEl) {
+  const pieces = chunkText(content, 200);
+  const chunks = [];
+  for (let i = 0; i < pieces.length; i++) {
+    if (statusEl) statusEl.textContent = `Đang tạo embedding đoạn ${i + 1}/${pieces.length}...`;
+    let embedding = [];
+    try { embedding = await embedText(pieces[i]); }
+    catch (embErr) { console.error(`Lỗi embedding chunk ${i + 1}:`, embErr); }
+    chunks.push({ text: pieces[i], embedding });
+  }
+  return chunks;
+}
+
+async function addEntry() {
+  // FIX: chốt activeEntryTab ngay lúc bấm nút, vì các bước embed bên dưới có await (gọi API embedding) ->
+  // nếu người dùng đổi tab trong lúc chờ, entry sẽ bị lưu nhầm vào collection của tab MỚI thay vì
+  // tab lúc họ thực sự bấm "+ Thêm entry".
+  const targetType = activeEntryTab;
+  const keywords = document.getElementById("entryKeywords").value.trim();
+  const content = document.getElementById("entryContent").value.trim();
+  const statusEl = document.getElementById("entryStatus");
+  if (!content) { statusEl.textContent = "Nội dung không được để trống."; return; }
+
+  statusEl.textContent = "Đang tạo embedding & lưu...";
+  try {
+    if (targetType === "events") {
+      // Sự Kiện: chia thành nhiều đoạn <=200 ký tự, mỗi đoạn có embedding riêng (full per-chunk).
+      const chunks = await buildEventChunks(content, statusEl);
+      await addDoc(entryColRef(targetType), {
+        keywords, content, chunks, createdAt: serverTimestamp()
+      });
+    } else {
+      // Sổ Tay: 1 embedding duy nhất cho cả entry, nội dung không giới hạn, không chunk.
+      let embedding = [];
+      try {
+        embedding = await embedText(content);
+      } catch (embErr) {
+        console.error("Lỗi embedding (vẫn lưu entry, chỉ mất khả năng RAG semantic cho entry này):", embErr);
+      }
+      await addDoc(entryColRef(targetType), {
+        keywords, content, embedding, createdAt: serverTimestamp()
+      });
+    }
+    document.getElementById("entryKeywords").value = "";
+    document.getElementById("entryContent").value = "";
+    document.getElementById("entryCharCount").textContent = "0 ký tự";
+    statusEl.textContent = "Đã lưu ✓";
+    setTimeout(() => statusEl.textContent = "", 1500);
+  } catch (e) {
+    statusEl.textContent = "Lỗi: " + e.message;
+  }
+}
+
+async function editEntry(entry, entryType) {
+  const newKeywords = prompt("Sửa từ khóa (cách nhau bằng dấu phẩy):", entry.keywords || "");
+  if (newKeywords === null) return;
+  const newContent = prompt("Sửa nội dung (không giới hạn ký tự):", entry.content || "");
+  if (newContent === null) return;
+  const trimmedContent = newContent.trim();
+  try {
+    // FIX: dùng entryType được chốt sẵn từ lúc render (tham số truyền vào), KHÔNG đọc activeEntryTab
+    // ở đây nữa -> tránh ghi nhầm collection nếu người dùng đổi tab trong lúc chờ prompt/re-embed.
+    if (entryType === "events") {
+      let chunks = entry.chunks || [];
+      if (trimmedContent !== entry.content) {
+        // Nội dung đổi -> chunk lại toàn bộ + embed lại từng đoạn, không dùng chunk cũ nữa.
+        chunks = await buildEventChunks(trimmedContent, null);
+      }
+      await updateDoc(doc(db, "users", currentUser.uid, entryType, entry.id), {
+        keywords: newKeywords.trim(), content: trimmedContent, chunks
+      });
+    } else {
+      let embedding = entry.embedding || [];
+      if (trimmedContent !== entry.content) {
+        try { embedding = await embedText(trimmedContent); }
+        catch (embErr) { console.error("Lỗi re-embed:", embErr); }
+      }
+      await updateDoc(doc(db, "users", currentUser.uid, entryType, entry.id), {
+        keywords: newKeywords.trim(), content: trimmedContent, embedding
+      });
+    }
+  } catch (e) {
+    alert("Lỗi khi sửa: " + e.message);
+  }
+}
+
+async function deleteEntry(id, entryType) {
+  if (!confirm("Xóa entry này?")) return;
+  // FIX: tương tự editEntry, dùng entryType đã chốt thay vì activeEntryTab hiện tại.
+  await deleteDoc(doc(db, "users", currentUser.uid, entryType, id));
+}
+
+document.getElementById("entryContent").addEventListener("input", (e) => {
+  document.getElementById("entryCharCount").textContent = `${e.target.value.length} ký tự`;
+});
+document.getElementById("btnAddEntry").onclick = addEntry;
+
+document.getElementById("btnOpenNotebook").onclick = () => {
+  document.getElementById("notebookModal").classList.remove("hidden");
+  renderEntryList();
+};
+document.getElementById("btnCloseNotebook").onclick = () =>
+  document.getElementById("notebookModal").classList.add("hidden");
+
+document.getElementById("tabNotebookBtn").onclick = () => switchEntryTab("notebook");
+document.getElementById("tabEventsBtn").onclick = () => switchEntryTab("events");
+
+function switchEntryTab(tab) {
+  activeEntryTab = tab;
+  document.getElementById("tabNotebookBtn").classList.toggle("active", tab === "notebook");
+  document.getElementById("tabEventsBtn").classList.toggle("active", tab === "events");
+  renderEntryList();
+}
+
+// ---------------- EMBEDDING (gemini-embedding-2, fallback lần lượt Key 1 -> 2 -> 3 -> 4) ----------------
+// LƯU Ý lịch sử: text-embedding-004 đã bị Google shut down (14/1/2026).
+// gemini-embedding-2 là model embedding mới nhất (đa phương thức, GA), thay cho gemini-embedding-001.
+// outputDimensionality: 768 để vector gọn, đỡ tốn Firestore & tính cosine nhanh hơn.
+// KHÔNG fallback sang model embedding khác khi lỗi: vector giữa 2 model không cùng không gian toán học
+// 100% (dù cùng 768 chiều, length check sẽ pass) -> nếu fallback âm thầm, cosineSim sẽ so sánh nhầm
+// 2 loại vector khác nhau và trả điểm similarity vô nghĩa MÀ KHÔNG BÁO LỖI -> RAG sai lệch trong im lặng,
+// nguy hiểm hơn nhiều so với việc throw lỗi rõ ràng. Nếu embedding lỗi, để lỗi throw ra ngoài;
+// callGeminiMain() đã có sẵn cơ chế giữ nguyên kết quả keyword-match khi RAG semantic thất bại.
+async function embedTextWithKey(apiKey, text) {
+  const model = "gemini-embedding-2";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:embedContent?key=${apiKey}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: `models/${model}`,
+      content: { parts: [{ text }] },
+      outputDimensionality: 768
+    })
+  });
+  if (!res.ok) throw new Error(`Embedding API lỗi (${res.status}): ${await res.text()}`);
+  const data = await res.json();
+  return data?.embedding?.values || [];
+}
+
+// Thử lần lượt qua cả 4 API Key (Key 1 -> 2 -> 3 -> 4, bỏ qua key trống) cho tới khi có key nào
+// gọi thành công. Dùng khi Key 1 hết quota/rate-limit/lỗi -> tự động rớt xuống key kế tiếp thay vì
+// chặn cứng toàn bộ tính năng RAG (embed entry, embed câu user) chỉ vì 1 key bị lỗi.
+async function embedText(text) {
+  const keys = [currentSettings.apiKey1, currentSettings.apiKey2, currentSettings.apiKey3, currentSettings.apiKey4]
+    .map((k, i) => ({ key: (k || "").trim(), label: `API Key ${i + 1}` }))
+    .filter(k => k.key);
+  if (keys.length === 0) throw new Error("Chưa có API Key nào được nhập để tạo embedding.");
+
+  let lastErr = null;
+  for (const { key, label } of keys) {
+    try {
+      return await embedTextWithKey(key, text);
+    } catch (e) {
+      console.error(`Embedding lỗi với ${label}, thử key kế tiếp:`, e);
+      lastErr = e;
+    }
+  }
+  throw new Error(`Tất cả API Key đều lỗi khi tạo embedding. Lỗi cuối: ${lastErr?.message || "không rõ"}`);
+}
+
+// Chia 1 đoạn văn bản dài thành nhiều đoạn nhỏ, mỗi đoạn tối đa maxLen ký tự.
+// Ưu tiên cắt tại ranh giới câu (. ! ? … hoặc xuống dòng), nếu 1 câu vẫn dài hơn maxLen
+// thì cắt tiếp theo ranh giới từ (không bao giờ cắt vỡ giữa 1 từ).
+function chunkText(text, maxLen) {
+  const clean = (text || "").trim();
+  if (!clean) return [];
+  if (clean.length <= maxLen) return [clean];
+
+  const sentences = clean.match(/[^.!?…\n]+[.!?…]*|\n+/g) || [clean];
+  const chunks = [];
+  let current = "";
+
+  const pushCurrent = () => { if (current.trim()) chunks.push(current.trim()); current = ""; };
+
+  for (let raw of sentences) {
+    const s = raw.trim();
+    if (!s) continue;
+    const candidate = current ? `${current} ${s}` : s;
+    if (candidate.length <= maxLen) {
+      current = candidate;
+      continue;
+    }
+    // Câu mới làm current vượt maxLen -> chốt current lại trước.
+    pushCurrent();
+    if (s.length <= maxLen) {
+      current = s;
+    } else {
+      // Bản thân 1 câu đã dài hơn maxLen -> cắt tiếp theo từ.
+      const words = s.split(/\s+/);
+      let piece = "";
+      for (const w of words) {
+        const cand = piece ? `${piece} ${w}` : w;
+        if (cand.length <= maxLen) {
+          piece = cand;
+        } else {
+          if (piece) chunks.push(piece);
+          piece = w;
+        }
+      }
+      current = piece;
+    }
+  }
+  pushCurrent();
+  return chunks;
+}
+
+function cosineSim(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length === 0 || b.length === 0 || a.length !== b.length) return -1;
+  let dot = 0, na = 0, nb = 0;
+  for (let i = 0; i < a.length; i++) { dot += a[i]*b[i]; na += a[i]*a[i]; nb += b[i]*b[i]; }
+  return dot / (Math.sqrt(na) * Math.sqrt(nb) + 1e-8);
+}
+
+// FIX bug 2: trước đây keyword-match và semantic search nằm chung 1 hàm async, gọi trong cùng
+// 1 try/catch với embedText() ở callGeminiMain -> nếu Embedding API lỗi, keyword-match (vốn phải
+// "ưu tiên cao nhất" theo spec, không phụ thuộc embedding) cũng bị mất theo oan uổng.
+// Nay tách làm 2 bước độc lập: các hàm keywordMatch*() là hàm ĐỒNG BỘ, thuần string match,
+// không bao giờ throw vì lý do mạng/API -> luôn chạy được. Các hàm fill*Semantic() chỉ bổ sung
+// thêm nếu embedding OK (Sổ Tay: entry-level, không cap số lượng, có ngưỡng liên quan tối thiểu.
+// Sự Kiện: chunk-level, cap MAX_EVENT_CHUNKS đoạn <=200 ký tự, gom từ mọi entry sự kiện).
+
+// Hàm dùng chung: lọc entries có keyword khớp câu user.
+function keywordMatchEntries(entries, queryText) {
+  const lowerQuery = queryText.toLowerCase();
+  return entries.filter(e => {
+    const kws = (e.keywords || "").split(",").map(k => k.trim().toLowerCase()).filter(Boolean);
+    return kws.some(k => lowerQuery.includes(k));
+  });
+}
+
+// ---- SỔ TAY: không giới hạn số entry, inject TOÀN BỘ nội dung entry liên quan ----
+// Bước A: keyword trigger match, ưu tiên cao nhất, KHÔNG phụ thuộc embedding, KHÔNG cap số lượng.
+function keywordMatchNotebook(entries, queryText) {
+  return keywordMatchEntries(entries, queryText);
+}
+
+// Bước B: bù thêm bằng RAG semantic search cho các entry CHƯA khớp keyword. Vì không cap số lượng,
+// dùng ngưỡng NOTEBOOK_SEMANTIC_THRESHOLD để chỉ lấy entry thực sự liên quan (không phải toàn bộ sổ tay).
+function fillNotebookSemantic(keywordHits, allEntries, queryEmbedding) {
+  const keywordIds = new Set(keywordHits.map(e => e.id));
+  const rest = allEntries.filter(e => !keywordIds.has(e.id));
+  const scored = rest
+    .map(e => ({ entry: e, score: cosineSim(queryEmbedding, e.embedding) }))
+    .filter(s => s.score >= NOTEBOOK_SEMANTIC_THRESHOLD)
+    .sort((a, b) => b.score - a.score)
+    .map(s => s.entry);
+  return [...keywordHits, ...scored];
+}
+
+// ---- SỰ KIỆN: chunk-level RAG. Trigger (keyword hay semantic) đều chỉ lấy ra tối đa
+// MAX_EVENT_CHUNKS đoạn <=200 ký tự liên quan nhất, gom từ TẤT CẢ entry sự kiện (không giới hạn entry) ----
+// Bước A: gom toàn bộ chunk của các entry khớp keyword, luôn chạy được, không phụ thuộc embedding.
+function keywordMatchEventChunks(entries, queryText) {
+  const matchedEntries = keywordMatchEntries(entries, queryText);
+  const chunks = [];
+  matchedEntries.forEach(e => (e.chunks || []).forEach(c => chunks.push(c)));
+  return chunks;
+}
+
+// Bước B: xếp hạng lại chunk đã khớp keyword theo similarity (nếu embedding OK), rồi bù thêm bằng
+// chunk từ MỌI entry còn lại (kể cả entry chưa khớp keyword) cho đủ MAX_EVENT_CHUNKS đoạn.
+function fillEventChunksSemantic(keywordChunks, allEntries, queryEmbedding) {
+  const rankedPriority = keywordChunks
+    .map(c => ({ text: c.text, score: cosineSim(queryEmbedding, c.embedding) }))
+    .sort((a, b) => b.score - a.score);
+
+  const priorityTextSet = new Set(keywordChunks.map(c => c.text));
+  const restChunks = [];
+  allEntries.forEach(e => (e.chunks || []).forEach(c => {
+    if (!priorityTextSet.has(c.text)) restChunks.push({ text: c.text, score: cosineSim(queryEmbedding, c.embedding) });
+  }));
+  const remainingSlots = Math.max(0, MAX_EVENT_CHUNKS - rankedPriority.length);
+  const scoredRest = restChunks
+    .filter(c => c.score > -1)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, remainingSlots)
+    .map(c => c.text);
+
+  return [...new Set([...rankedPriority.map(c => c.text), ...scoredRest])].slice(0, MAX_EVENT_CHUNKS);
+}
+
+// ---------------- ROLLING SUMMARY (SỬ GIA) ----------------
+let rollingSummaryState = { summaryText: "", lastSummarizedCount: 0 };
+
+function rollingSummaryDocRef() {
+  return doc(db, "users", currentUser.uid, "state", "rollingSummary");
+}
+
+async function loadRollingSummary() {
+  try {
+    const snap = await getDoc(rollingSummaryDocRef());
+    rollingSummaryState = snap.exists()
+      ? { summaryText: snap.data().summaryText || "", lastSummarizedCount: snap.data().lastSummarizedCount || 0 }
+      : { summaryText: "", lastSummarizedCount: 0 };
+  } catch (e) {
+    console.error("Lỗi load rolling summary:", e);
+  }
+}
+
+// Gọi model đơn giản (không system instruction/history phức tạp) - dùng chung cho Sử Gia, Đạo Diễn (Part 3)...
+async function callGeminiSimple(apiKey, model, promptText) {
+  if (!apiKey) throw new Error("Thiếu API Key cho model " + model);
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ role: "user", parts: [{ text: promptText }] }],
+      safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+      ]
+    })
+  });
+  if (!res.ok) throw new Error(`Gemini API lỗi (${res.status}): ${await res.text()}`);
+  const data = await res.json();
+  return data?.candidates?.[0]?.content?.parts?.map(p => p.text).join("") || "";
+}
+
+// Module ngầm, async non-blocking: cứ mỗi SUMMARY_TRIGGER_EVERY turn "cũ" mới phát sinh
+// (nằm ngoài phạm vi MAIN_AI_CONTEXT_TURNS mà AI Chính đang đọc) thì tóm tắt lại,
+// đọc tối đa HISTORIAN_READ_TURNS turn cũ gần biên nhất. Lỗi ở đây KHÔNG được chặn UI chính.
+const SUMMARY_TRIGGER_EVERY = 10;
+let isSummarizing = false;
+async function maybeRunHistorian() {
+  try {
+    if (isSummarizing) return;
+    if (!currentSettings.apiKey2) return;
+    // FIX bug 3: dùng knownMessageCount (cập nhật đồng bộ ngay sau addDoc) thay vì messagesCache.length
+    // (chỉ cập nhật khi onSnapshot bắn về, có thể trễ so với thời điểm hàm này chạy).
+    const oldTurnsCount = knownMessageCount - MAIN_AI_CONTEXT_TURNS;
+    if (oldTurnsCount <= 0) return;
+    if (oldTurnsCount - rollingSummaryState.lastSummarizedCount < SUMMARY_TRIGGER_EVERY) return;
+
+    isSummarizing = true;
+    const oldTurns = messagesCache.slice(0, oldTurnsCount).slice(-HISTORIAN_READ_TURNS);
+    const turnsText = oldTurns.map(m => `${m.role === "user" ? "Người dùng" : "AI"}: ${m.text}`).join("\n");
+    const prompt = [
+      currentSettings.promptC || "Bạn là Sử Gia, hãy tóm tắt hội thoại RP một cách súc tích, giữ mốc quan trọng.",
+      `[TÓM TẮT TRƯỚC ĐÓ]\n${rollingSummaryState.summaryText || "(chưa có)"}`,
+      `[CÁC TURN CŨ CẦN GỘP VÀO TÓM TẮT]\n${turnsText}`,
+      "Viết lại bản tóm tắt tổng hợp mới, ngắn gọn."
+    ].join("\n\n");
+
+    const newSummary = await callGeminiSimple(currentSettings.apiKey2, "gemini-3.1-flash-lite", prompt);
+    rollingSummaryState = { summaryText: newSummary, lastSummarizedCount: oldTurnsCount };
+    await setDoc(rollingSummaryDocRef(), rollingSummaryState);
+  } catch (e) {
+    console.error("Sử Gia lỗi (không ảnh hưởng UI chính):", e);
+  } finally {
+    isSummarizing = false;
+  }
+}
+
+// ==================== PART 3 ====================
+
+// ---------------- STATE: ĐẠO DIỄN (PLOT TWIST) ----------------
+// Lưu Firestore để không mất khi reload trang giữa chừng.
+let directorState = { pendingTwist: "" };
+
+function directorStateDocRef() {
+  return doc(db, "users", currentUser.uid, "state", "director");
+}
+async function loadDirectorState() {
+  try {
+    const snap = await getDoc(directorStateDocRef());
+    directorState = snap.exists() ? { pendingTwist: snap.data().pendingTwist || "" } : { pendingTwist: "" };
+  } catch (e) {
+    console.error("Lỗi load Director state:", e);
+  }
+}
+async function saveDirectorState() {
+  try { await setDoc(directorStateDocRef(), directorState); }
+  catch (e) { console.error("Lỗi lưu Director state:", e); }
+}
+
+// ---------------- STATE: PENDING NPC CONTEXT ----------------
+let npcState = { pendingContext: "" };
+
+function npcStateDocRef() {
+  return doc(db, "users", currentUser.uid, "state", "npc");
+}
+async function loadNpcState() {
+  try {
+    const snap = await getDoc(npcStateDocRef());
+    npcState = snap.exists() ? { pendingContext: snap.data().pendingContext || "" } : { pendingContext: "" };
+  } catch (e) {
+    console.error("Lỗi load NPC state:", e);
+  }
+}
+async function saveNpcState() {
+  try { await setDoc(npcStateDocRef(), npcState); }
+  catch (e) { console.error("Lỗi lưu NPC state:", e); }
+}
+
+// Bóc JSON ra khỏi text trả lời (phòng khi model bọc trong ```json ... ``` hoặc kèm chữ thừa)
+function extractJson(text) {
+  if (!text) return null;
+  const cleaned = text.replace(/```json/gi, "").replace(/```/g, "").trim();
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  if (start === -1 || end === -1 || end < start) return null;
+  try { return JSON.parse(cleaned.slice(start, end + 1)); }
+  catch { return null; }
+}
+
+// ---------------- REVIEWER (System Prompt B, API Key 1, gemini-3.1-flash-lite) ----------------
+// Chạy NGAY SAU AI Chính, trước khi lưu tin nhắn vào Firestore (nằm trong luồng chính,
+// vì mục đích là chốt lại nội dung cuối cùng sẽ hiển thị cho người dùng).
+// Nếu Reviewer lỗi hoặc không trả prompt B -> fallback dùng nguyên văn output của AI Chính,
+// KHÔNG được chặn việc gửi tin.
+async function callReviewer(latestUserText, draftReply) {
+  if (!currentSettings.promptB || !currentSettings.apiKey1) return draftReply;
+  try {
+    const prompt = [
+      currentSettings.promptB,
+      `[TIN NHẮN NGƯỜI DÙNG]\n${latestUserText}`,
+      `[BẢN NHÁP TRẢ LỜI CỦA AI CHÍNH]\n${draftReply}`,
+      "Nếu bản nháp đã ổn, trả lại nguyên văn không đổi. Nếu cần chỉnh (sai văn phong, lệch nhịp, phá vỡ mạch RP...), " +
+      "hãy trả lại bản đã sửa. CHỈ trả về nội dung cuối cùng sẽ hiển thị cho người chơi, không thêm giải thích/ghi chú."
+    ].join("\n\n");
+    const reviewed = await callGeminiSimple(currentSettings.apiKey1, "gemini-3.1-flash-lite", prompt);
+    return reviewed && reviewed.trim() ? reviewed.trim() : draftReply;
+  } catch (e) {
+    console.error("Reviewer lỗi (dùng nguyên bản AI Chính):", e);
+    return draftReply;
+  }
+}
+
+// ---------------- ĐẠO DIỄN / PLOT TWIST (System Prompt D, API Key 2, gemini-3.5-flash-lite) ----------------
+// Chạy NGẦM, async non-blocking, sau khi turn đã lưu xong. Phân tích ngữ cảnh gần nhất,
+// quyết định có nên châm ngòi plot twist ở turn kế tiếp hay không.
+let isDirectorRunning = false;
+async function maybeRunDirector(chatHistory, latestUserText, latestReply) {
+  try {
+    if (isDirectorRunning) return;
+    if (!currentSettings.promptD || !currentSettings.apiKey2) return;
+    isDirectorRunning = true;
+
+    const recentText = chatHistory.slice(-10)
+      .map(m => `${m.role === "user" ? "Người dùng" : "AI"}: ${m.text}`).join("\n");
+    const prompt = [
+      currentSettings.promptD,
+      `[BỐI CẢNH GẦN NHẤT]\n${recentText}`,
+      `[TÓM TẮT DÀI HẠN]\n${rollingSummaryState.summaryText || "(chưa có)"}`,
+      'Phân tích và quyết định có nên tạo bước ngoặt (plot twist) cho turn kế tiếp không. ' +
+      'CHỈ trả về đúng 1 JSON object, không thêm chữ nào khác, đúng format: ' +
+      '{"trigger_twist": true hoặc false, "twist_content": "nội dung bước ngoặt nếu true, ngược lại để chuỗi rỗng"}'
+    ].join("\n\n");
+
+    const raw = await callGeminiSimple(currentSettings.apiKey2, "gemini-3.5-flash-lite", prompt);
+    const parsed = extractJson(raw);
+    if (parsed && parsed.trigger_twist === true && parsed.twist_content) {
+      directorState = { pendingTwist: String(parsed.twist_content) };
+      await saveDirectorState();
+    }
+  } catch (e) {
+    console.error("Đạo Diễn lỗi (không ảnh hưởng UI chính):", e);
+  } finally {
+    isDirectorRunning = false;
+  }
+}
+
+// ---------------- NPC AGENTS (E,F,G) + SYNTHESIZER (H) ----------------
+// Agent 1 (E) + Agent 2 (F) -> API Key 3, song song.
+// Agent 3 (G) -> API Key 4, song song với 2 agent trên.
+// Synthesizer (H) -> API Key 4, chạy SAU khi có đủ output các agent (agent nào lỗi thì bỏ qua, không chặn cả cụm).
+// Toàn bộ chạy ngầm, async non-blocking, kết quả cuối lưu vào [PENDING NPC CONTEXT] cho turn kế tiếp.
+let isNpcRunning = false;
+async function runNpcAgent(apiKey, model, promptText, sceneText, label) {
+  if (!apiKey || !promptText) return "";
+  try {
+    const full = `${promptText}\n\n[BỐI CẢNH HIỆN TẠI]\n${sceneText}\n\nChỉ trả về phần phân tích/gợi ý của bạn, ngắn gọn, không lặp lại bối cảnh.`;
+    return await callGeminiSimple(apiKey, model, full);
+  } catch (e) {
+    console.error(`NPC ${label} lỗi (bỏ qua agent này):`, e);
+    return "";
+  }
+}
+
+async function maybeRunNpcPipeline(chatHistory, latestUserText, latestReply) {
+  try {
+    if (isNpcRunning) return;
+    const hasAnyNpcPrompt = currentSettings.promptE || currentSettings.promptF || currentSettings.promptG;
+    if (!hasAnyNpcPrompt) return;
+    isNpcRunning = true;
+
+    const sceneText = chatHistory.slice(-6)
+      .map(m => `${m.role === "user" ? "Người dùng" : "AI"}: ${m.text}`).join("\n");
+
+    const [outE, outF, outG] = await Promise.all([
+      runNpcAgent(currentSettings.apiKey3, "gemini-3.1-flash-lite", currentSettings.promptE, sceneText, "Agent 1 - Hành động/Vật lý"),
+      runNpcAgent(currentSettings.apiKey3, "gemini-3.5-flash-lite", currentSettings.promptF, sceneText, "Agent 2 - Tâm lý/Cảm xúc ngầm"),
+      runNpcAgent(currentSettings.apiKey4, "gemini-3.1-flash-lite", currentSettings.promptG, sceneText, "Agent 3 - Bối cảnh/Môi trường")
+    ]);
+
+    const agentOutputs = [
+      outE ? `[AGENT 1 - HÀNH ĐỘNG/VẬT LÝ]\n${outE}` : "",
+      outF ? `[AGENT 2 - TÂM LÝ/CẢM XÚC NGẦM]\n${outF}` : "",
+      outG ? `[AGENT 3 - BỐI CẢNH/MÔI TRƯỜNG]\n${outG}` : ""
+    ].filter(Boolean).join("\n\n");
+
+    if (!agentOutputs || !currentSettings.apiKey4) { isNpcRunning = false; return; }
+
+    const synthPrompt = [
+      currentSettings.promptH || "Bạn là Synthesizer, hãy lọc và tổng hợp các gợi ý NPC dưới đây thành một đoạn ngắn gọn, nhất quán.",
+      agentOutputs,
+      "Tổng hợp thành 1 đoạn NGẮN GỌN, chỉ giữ chi tiết đáng dùng, loại bỏ trùng lặp/mâu thuẫn."
+    ].join("\n\n");
+
+    const synthesized = await callGeminiSimple(currentSettings.apiKey4, "gemini-3.5-flash-lite", synthPrompt);
+    if (synthesized && synthesized.trim()) {
+      npcState = { pendingContext: synthesized.trim() };
+      await saveNpcState();
+    }
+  } catch (e) {
+    console.error("NPC pipeline lỗi (không ảnh hưởng UI chính):", e);
+  } finally {
+    isNpcRunning = false;
+  }
+}
+
+// Gọi cả Đạo Diễn + NPC pipeline song song, ngầm, sau mỗi turn đã lưu xong.
+function maybeRunDirectorAndNpc(chatHistory, latestUserText, latestReply) {
+  maybeRunDirector(chatHistory, latestUserText, latestReply);
+  maybeRunNpcPipeline(chatHistory, latestUserText, latestReply);
+}
+
+function renderMessage(id, msg, isLast) {
+  const chatArea = document.getElementById("chatArea");
+  const wrap = document.createElement("div");
+  wrap.className = "msg-wrap group relative " + (msg.role === "user" ? "text-right" : "text-left");
+  wrap.dataset.id = id;
+
+  const bubbleWrap = document.createElement("div");
+  bubbleWrap.className = "inline-block max-w-[85%] text-left";
+  bubbleWrap.innerHTML = renderContentParts(msg.text || "");
+
+  // Nếu là tin nhắn cuối cùng và hệ thống đang chờ AI trả lời (isSending=true):
+  // KHÓA Sửa/Xóa tin này. Lý do: nội dung đã được đưa vào request gửi cho AI Chính rồi,
+  // sửa/xóa lúc này không "hủy" được request đang bay -> tránh hội thoại bị lệch.
+  const lockActions = isLast && isSending;
+
+  const actions = document.createElement("div");
+  actions.className = "msg-actions gap-2 mt-1 text-xs";
+  if (lockActions) {
+    actions.innerHTML = `<span class="text-slate-600 italic">Đang chờ AI trả lời...</span>`;
+  } else {
+    actions.innerHTML = `
+      <button class="btnEdit text-slate-400 hover:text-indigo-400">Sửa</button>
+      <button class="btnDelete text-slate-400 hover:text-red-400">Xóa</button>
+    `;
+    actions.querySelector(".btnEdit").onclick = () => editMessage(id, msg.text);
+    actions.querySelector(".btnDelete").onclick = () => deleteMessage(id);
+  }
+
+  wrap.appendChild(bubbleWrap);
+  wrap.appendChild(actions);
+
+  if (!lockActions) {
+    let pressTimer;
+    wrap.addEventListener("mousedown", () => pressTimer = setTimeout(() => toggleActions(wrap), 450));
+    wrap.addEventListener("touchstart", () => pressTimer = setTimeout(() => toggleActions(wrap), 450));
+    ["mouseup","mouseleave","touchend"].forEach(ev =>
+      wrap.addEventListener(ev, () => clearTimeout(pressTimer))
+    );
+  }
+
+  chatArea.appendChild(wrap);
+}
+
+// Bật/tắt nút Sửa/Xóa, tự đóng cái đang mở trước đó, và đóng khi bấm ra ngoài
+function toggleActions(wrap) {
+  const wasOpen = wrap.classList.contains("show-actions");
+  document.querySelectorAll(".msg-wrap.show-actions").forEach(el => el.classList.remove("show-actions"));
+  if (!wasOpen) wrap.classList.add("show-actions");
+}
+
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".msg-wrap")) {
+    document.querySelectorAll(".msg-wrap.show-actions").forEach(el => el.classList.remove("show-actions"));
+  }
+});
+
+// Thoại trong "..." -> bubble; phần còn lại (narrator/hành động) -> text nhạt, không bubble
+function renderContentParts(text) {
+  const parts = text.split(/("(?:[^"\\]|\\.)*")/g).filter(p => p.length > 0);
+  return parts.map(part => {
+    if (part.startsWith('"') && part.endsWith('"')) {
+      const inner = part.slice(1, -1);
+      return `<span class="inline-block bg-indigo-600/80 text-white px-3 py-2 rounded-2xl rounded-bl-sm my-1 whitespace-pre-wrap">${escapeHtml(inner)}</span>`;
+    } else if (part.trim().length > 0) {
+      return `<div class="text-sm text-slate-400 italic my-1 whitespace-pre-wrap">${escapeHtml(part)}</div>`;
+    }
+    return "";
+  }).join("");
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+async function editMessage(id, oldText) {
+  const newText = prompt("Sửa tin nhắn:", oldText);
+  if (newText !== null && newText.trim() !== "") {
+    await updateDoc(doc(db, "users", currentUser.uid, "messages", id), { text: newText });
+  }
+}
+
+async function deleteMessage(id) {
+  if (confirm("Xóa tin nhắn này?")) {
+    await deleteDoc(doc(db, "users", currentUser.uid, "messages", id));
+  }
+}
+
+// Tự dọn dẹp: nếu tổng số turn lưu trong Firestore > MAX_STORED_TURNS,
+// xóa bớt các turn CŨ NHẤT (đầu mảng, vì messagesCache đang order asc theo createdAt)
+// cho tới khi về lại đúng MAX_STORED_TURNS.
+let isCleaningUp = false;
+async function cleanupOldMessages() {
+  if (isCleaningUp) return;
+  if (messagesCache.length <= MAX_STORED_TURNS) return;
+  isCleaningUp = true;
+  try {
+    const excess = messagesCache.length - MAX_STORED_TURNS;
+    const toDelete = messagesCache.slice(0, excess);
+    await Promise.all(
+      toDelete.map(m => deleteDoc(doc(db, "users", currentUser.uid, "messages", m.id)))
+    );
+  } catch (e) {
+    console.error("Lỗi khi dọn turn cũ:", e);
+  } finally {
+    isCleaningUp = false;
+  }
+}
+
+// ---------------- GEMINI CALL (AI Chính) ----------------
+// Thứ tự inject (Part 2 hoàn thiện bước 3-6, Part 3 sẽ hoàn thiện bước 7-8):
+// 1. System Prompt chính  2. User Profile  3. Sự Kiện (hybrid)  4. Sổ Tay (hybrid)
+// 5. Rolling Summary  6. Mẫu nhịp thoại  7. Plot Twist (TODO Part 3)  8. Pending NPC Context (TODO Part 3)  9. Chat history
+// Lưu ý: chatHistory truyền vào đây đã được cắt còn MAIN_AI_CONTEXT_TURNS (36) turn gần nhất ở handleSend().
+async function callGeminiMain(chatHistory, latestUserText) {
+  const apiKey = currentSettings.apiKey1;
+  if (!apiKey) throw new Error("Chưa nhập API Key 1 trong Cài đặt.");
+
+  // Bước 3 & 4: Sự Kiện (chunk-level, cap MAX_EVENT_CHUNKS đoạn <=200 ký tự) + Sổ Tay (entry-level,
+  // không giới hạn số entry, inject full nội dung), hybrid keyword trigger + RAG semantic search.
+  // Lỗi ở khối này KHÔNG được chặn AI Chính -> RP vẫn tiếp tục dù RAG tạm hỏng.
+  let eventsBlock = "", notebookBlock = "";
+  if (eventsCache.length > 0 || notebookCache.length > 0) {
+    // FIX bug 4: chỉ tốn 1 lần gọi Embedding API khi thật sự có entry nào đó để so khớp.
+    // Bước 3&4a: keyword-match chạy TRƯỚC, đồng bộ, không thể bị hỏng bởi lỗi mạng/API.
+    const eventChunksKeywordHit = keywordMatchEventChunks(eventsCache, latestUserText);
+    let pickedEventChunks = [...new Set(eventChunksKeywordHit.map(c => c.text))].slice(0, MAX_EVENT_CHUNKS); // fallback nếu embedding lỗi
+    let pickedNotebook = keywordMatchNotebook(notebookCache, latestUserText);
+
+    // Bước 3&4b: bổ sung bằng RAG semantic search. FIX bug 2: try/catch RIÊNG cho phần này ->
+    // nếu Embedding API lỗi, pickedEventChunks/pickedNotebook vẫn giữ nguyên kết quả keyword-match
+    // ở trên, không bị xóa sạch oan uổng như trước.
+    try {
+      const queryEmbedding = await embedText(latestUserText);
+      pickedEventChunks = fillEventChunksSemantic(eventChunksKeywordHit, eventsCache, queryEmbedding);
+      pickedNotebook = fillNotebookSemantic(pickedNotebook, notebookCache, queryEmbedding);
+    } catch (ragErr) {
+      console.error("RAG semantic lỗi (giữ nguyên kết quả keyword-match, không chặn AI Chính):", ragErr);
+    }
+
+    if (pickedEventChunks.length) eventsBlock = "[SỰ KIỆN ĐÃ QUA]\n" + pickedEventChunks.map(c => `- ${c}`).join("\n");
+    if (pickedNotebook.length) notebookBlock = "[SỔ TAY]\n" + pickedNotebook.map(e => `- ${e.content}`).join("\n");
+  }
+
+  // Bước 5: Rolling Summary từ Sử Gia
+  const summaryBlock = rollingSummaryState.summaryText
+    ? `[ROLLING SUMMARY]\n${rollingSummaryState.summaryText}` : "";
+
+  // Bước 6: Mẫu nhịp thoại đang chọn
+  const paceKey = currentSettings.activePace || "pace2";
+  const paceBlock = currentSettings[paceKey] ? `[MẪU NHỊP THOẠI]\n${currentSettings[paceKey]}` : "";
+
+  // Bước 7 & 8: Plot Twist (Đạo Diễn) + Pending NPC Context, do Part 3 sinh ra ở turn TRƯỚC.
+  // QUAN TRỌNG: chỉ reset SAU KHI fetch thành công (xem cuối hàm) -> nếu API lỗi/mất mạng,
+  // twist/context vẫn còn nguyên để dùng lại ở lần gửi kế tiếp, không bị mất trắng.
+  const twistBlock = directorState.pendingTwist
+    ? `[PLOT TWIST]\n${directorState.pendingTwist}` : "";
+  const npcContextBlock = npcState.pendingContext
+    ? `[PENDING NPC CONTEXT]\n${npcState.pendingContext}` : "";
+
+  const systemInstructionText = [
+    currentSettings.promptA || "",                                                        // 1
+    currentSettings.userProfile ? `[USER PROFILE]\n${currentSettings.userProfile}` : "",   // 2
+    eventsBlock,                                                                           // 3
+    notebookBlock,                                                                         // 4
+    summaryBlock,                                                                          // 5
+    paceBlock,                                                                             // 6
+    twistBlock,                                                                            // 7
+    npcContextBlock,                                                                       // 8
+  ].filter(Boolean).join("\n\n");
+
+  const model = "gemini-3.5-flash-lite";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+  // Gemini yêu cầu phần tử đầu tiên của contents phải là "user".
+  // Lọc bỏ mọi tin nhắn "model" mồ côi ở đầu danh sách (vd sau khi xóa hết tin nhắn user cũ).
+  const trimmedHistory = [...chatHistory];
+  while (trimmedHistory.length > 0 && trimmedHistory[0].role !== "user") {
+    trimmedHistory.shift();
+  }
+
+  // FIX: Gemini API yêu cầu role xen kẽ TUYỆT ĐỐI (user/model/user/model...), không chấp nhận
+  // 2 content liên tiếp cùng role -> trả lỗi 400 "Please ensure that the roles alternate".
+  // Có thể xảy ra 2 turn cùng role liền nhau khi: (a) callGeminiMain lỗi ở lượt trước nên không có
+  // tin nhắn "model" được lưu, lượt sau user gửi tiếp -> 2 "user" liền nhau; (b) người dùng xóa
+  // 1 tin nhắn ở giữa qua nút Xóa, làm 2 tin còn lại cùng role kề nhau.
+  // Giải pháp: gộp các content liền kề cùng role thành 1 content nhiều đoạn text (nối bằng \n\n),
+  // thay vì bỏ bớt tin nhắn (tránh mất dữ liệu ngữ cảnh).
+  const contents = [];
+  for (const m of trimmedHistory) {
+    const role = m.role === "user" ? "user" : "model";
+    const last = contents[contents.length - 1];
+    if (last && last.role === role) {
+      last.parts[0].text += `\n\n${m.text}`;
+    } else {
+      contents.push({ role, parts: [{ text: m.text }] });
+    }
+  }
+
+  const body = {
+    systemInstruction: { parts: [{ text: systemInstructionText }] },
+    contents,
+    safetySettings: [
+      { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+    ]
+  };
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Gemini API lỗi (${res.status}): ${errText}`);
+  }
+  const data = await res.json();
+  const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join("") || "(Không có phản hồi)";
+
+  // Chỉ đến đây (API đã trả kết quả thành công) mới reset Plot Twist / NPC Context vừa dùng.
+  // Nếu fetch lỗi ở trên, code đã throw và thoát trước khi tới đây -> state được giữ nguyên.
+  if (directorState.pendingTwist) {
+    directorState = { pendingTwist: "" };
+    saveDirectorState();
+  }
+  if (npcState.pendingContext) {
+    npcState = { pendingContext: "" };
+    saveNpcState();
+  }
+
+  return text;
+}
+
+// ---------------- SEND FLOW ----------------
+const inputText = document.getElementById("inputText");
+const btnSend = document.getElementById("btnSend");
+const sendStatus = document.getElementById("sendStatus");
+
+inputText.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    handleSend();
+  }
+});
+btnSend.onclick = handleSend;
+
+async function handleSend() {
+  // Chặn spam: nếu đang có 1 lượt gửi chưa xong (đang chờ AI Chính/Reviewer),
+  // không cho gửi thêm tin mới đè lên -> tránh 2 request chạy song song đá nhau state.
+  if (isSending) return;
+
+  const text = inputText.value.trim();
+  if (!text || !currentUser) return;
+
+  btnSend.disabled = true;
+  isSending = true;
+  inputText.value = "";
+  sendStatus.textContent = "Đang gửi...";
+
+  try {
+    // Build chatHistory từ cache (nguồn dữ liệu thật, không đọc DOM -> không lẫn chữ nút Sửa/Xóa)
+    // Chỉ lấy MAIN_AI_CONTEXT_TURNS (36) turn gần nhất để gửi cho AI Chính -> tránh phình payload
+    // khi RP kéo dài (phần lịch sử cũ hơn sẽ do Sử Gia tóm tắt ở Part 2).
+    const recentTurns = messagesCache.slice(-MAIN_AI_CONTEXT_TURNS);
+    const chatHistory = [...recentTurns.map(m => ({ role: m.role, text: m.text })), { role: "user", text }];
+
+    await addDoc(messagesColRef(), { role: "user", text, createdAt: serverTimestamp() });
+    knownMessageCount++; // FIX bug 3: tăng ngay, không chờ onSnapshot
+
+    sendStatus.textContent = "AI Chính đang trả lời...";
+    let replyText;
+    try {
+      replyText = await callGeminiMain(chatHistory, text);
+    } catch (apiErr) {
+      // Không lưu lỗi API vào Firestore -> tránh Gemini đọc lại câu lỗi ở lượt sau
+      // và bị bối rối / lặp lỗi theo.
+      sendStatus.textContent = "⚠️ Lỗi gọi AI: " + apiErr.message;
+      return;
+    }
+
+    // Reviewer (Prompt B, API Key 1): chốt lại nội dung cuối cùng trước khi lưu & hiển thị.
+    // Lỗi Reviewer KHÔNG được chặn gửi tin -> fallback dùng nguyên bản AI Chính.
+    sendStatus.textContent = "Reviewer đang kiểm tra...";
+    replyText = await callReviewer(text, replyText);
+
+    await addDoc(messagesColRef(), { role: "model", text: replyText, createdAt: serverTimestamp() });
+    knownMessageCount++; // FIX bug 3: tăng ngay, đảm bảo maybeRunHistorian() bên dưới đọc đúng số turn hiện có
+    sendStatus.textContent = "";
+
+    // Dọn bớt turn cũ nếu tổng số đã vượt MAX_STORED_TURNS (250)
+    cleanupOldMessages();
+    // Sử Gia chạy ngầm, async non-blocking, không await -> không làm chậm UI chính
+    maybeRunHistorian();
+    // Đạo Diễn (Plot Twist) + NPC Agents 1-3/Synthesizer: chạy ngầm, async non-blocking,
+    // kết quả sẽ được dùng ở turn KẾ TIẾP (bước 7 & 8 trong callGeminiMain).
+    maybeRunDirectorAndNpc(chatHistory.concat([{ role: "model", text: replyText }]), text, replyText);
+  } catch (e) {
+    sendStatus.textContent = "Lỗi: " + e.message;
+  } finally {
+    btnSend.disabled = false;
+    isSending = false;
+    rerenderMessages();
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RPChat - Part 1+2 (Core + Sổ Tay/Sự Kiện RAG + Sử Gia) - Updated</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { background:#0f1115; }
+  ::-webkit-scrollbar { width:6px; }
+  ::-webkit-scrollbar-thumb { background:#334155; border-radius:4px; }
+  .msg-actions { display:none; }
+  .msg-wrap.show-actions .msg-actions { display:flex; }
+  textarea { resize: vertical; }
+  .input-field {
+    background:#1e293b; border:1px solid #334155; border-radius:0.75rem;
+    padding:0.5rem 0.75rem; font-size:0.875rem; color:#e2e8f0; outline:none;
+  }
+  .input-field:focus { box-shadow:0 0 0 2px #4f46e5; }
+  .label-sm { display:block; font-size:0.75rem; color:#94a3b8; margin-bottom:0.25rem; }
+  .tab-btn.active { background:#4f46e5 !important; }
+  .entry-item { background:#1e293b; border:1px solid #334155; border-radius:0.75rem; padding:0.75rem; }
+  .small-toggle { display:inline-flex; align-items:center; gap:0.5rem; color:#cbd5e1; }
+</style>
+</head>
+<body class="min-h-screen text-slate-200 font-sans">
+
+  <!-- ===================== LOGIN SCREEN ===================== -->
+  <div id="loginScreen" class="min-h-screen flex items-center justify-center">
+    <div class="bg-slate-800/60 border border-slate-700 rounded-2xl p-8 w-full max-w-sm text-center">
+      <h1 class="text-2xl font-bold mb-2">RPChat</h1>
+      <p class="text-slate-400 mb-6 text-sm">Đăng nhập để đồng bộ dữ liệu qua Firestore</p>
+      <button id="btnGoogleLogin"
+        class="w-full bg-white text-slate-900 font-semibold py-2.5 rounded-xl hover:bg-slate-100 transition">
+        Đăng nhập với Google
+      </button>
+      <p id="loginError" class="text-red-400 text-xs mt-3 hidden"></p>
+    </div>
+  </div>
+
+  <!-- ===================== MAIN APP ===================== -->
+  <div id="appScreen" class="hidden h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="flex items-center justify-between px-4 py-3 border-b border-slate-800 bg-slate-900/70 backdrop-blur">
+      <div class="flex items-center gap-2">
+        <img id="userAvatar" class="w-8 h-8 rounded-full" src="" alt="" />
+        <span id="userName" class="text-sm text-slate-300"></span>
+        <!-- Quick pinned memory preview -->
+        <div id="pinnedPreview" class="ml-3 text-xs text-amber-300 italic hidden"></div>
+      </div>
+      <div class="flex items-center gap-2">
+        <select id="activePaceSelect" class="text-xs bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5">
+          <option value="pace1">Nhịp: Nhanh/Hỗn loạn</option>
+          <option value="pace2">Nhịp: Trò chuyện thường ngày</option>
+          <option value="pace3">Nhịp: Sâu lắng</option>
+          <option value="pace4">Nhịp: Đám đông</option>
+        </select>
+        <button id="btnOpenNotebook" class="text-sm px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700">📒 Sổ Tay/Sự Kiện</button>
+        <button id="btnOpenSettings" class="text-sm px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700">⚙ Cài đặt</button>
+        <button id="btnLogout" class="text-sm px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-red-700/60">Đăng xuất</button>
+      </div>
+    </header>
+
+    <!-- Chat area -->
+    <main id="chatArea" class="flex-1 overflow-y-auto px-3 py-4 space-y-3"></main>
+
+    <!-- Input row -->
+    <div class="border-t border-slate-800 p-3 bg-slate-900/70">
+      <div class="flex items-end gap-2">
+        <button id="btnSend"
+          class="shrink-0 h-11 w-11 rounded-xl bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center transition disabled:opacity-40">
+          ➤
+        </button>
+        <textarea id="inputText" rows="1"
+          class="flex-1 resize-none bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
+          placeholder="Nhập tin nhắn... (Enter để gửi, Shift+Enter xuống dòng)"></textarea>
+      </div>
+      <p id="sendStatus" class="text-xs text-slate-500 mt-1 h-4"></p>
+    </div>
+  </div>
+
+  <!-- ===================== SETTINGS MODAL ===================== -->
+  <div id="settingsModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-bold">Cài đặt hệ thống</h2>
+        <button id="btnCloseSettings" class="text-slate-400 hover:text-white text-xl leading-none">✕</button>
+      </div>
+
+      <!-- API KEYS -->
+      <section class="mb-6">
+        <h3 class="text-sm font-semibold text-indigo-400 mb-2">API Keys (1–4)</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input id="apiKey1" placeholder="API Key 1 (AI Chính / Reviewer / Embedding)" class="input-field" />
+          <input id="apiKey2" placeholder="API Key 2 (Sử Gia / Đạo Diễn)" class="input-field" />
+          <input id="apiKey3" placeholder="API Key 3 (NPC Agent 1 & 2)" class="input-field" />
+          <input id="apiKey4" placeholder="API Key 4 (NPC Agent 3 / Synthesizer)" class="input-field" />
+        </div>
+      </section>
+
+      <!-- USER PROFILE -->
+      <section class="mb-6">
+        <h3 class="text-sm font-semibold text-indigo-400 mb-2">Hồ sơ người dùng / Nhân vật (User Profile)</h3>
+        <textarea id="userProfile" rows="3" class="input-field w-full" placeholder="Mô tả nhân vật, bối cảnh, thông tin nền..."></textarea>
+      </section>
+
+      <!-- PINNED MEMORY -->
+      <section class="mb-6">
+        <h3 class="text-sm font-semibold text-amber-300 mb-2">Ghim / Memory (ghi chú quan trọng)</h3>
+        <textarea id="pinnedMemory" rows="2" class="input-field w-full" placeholder="Thông tin luôn nhớ trong scene, sẽ được ghim vào hệ thống instruction (ví dụ: 'Nhân vật đang cầm thanh kiếm đỏ')"></textarea>
+        <p class="text-xs text-slate-500 mt-1">Dòng này sẽ được chèn trực tiếp vào prompt của AI Chính ở mỗi turn cho đến khi bạn xóa nó.</p>
+      </section>
+
+      <!-- SYSTEM PROMPTS A-D -->
+      <section class="mb-6">
+        <h3 class="text-sm font-semibold text-indigo-400 mb-2">System Prompts chính</h3>
+        <div class="space-y-3">
+          <div><label class="label-sm">A. AI Chính</label><textarea id="promptA" rows="3" class="input-field w-full"></textarea></div>
+          <div><label class="label-sm">B. Reviewer</label><textarea id="promptB" rows="2" class="input-field w-full"></textarea></div>
+          <div><label class="label-sm">C. Sử Gia (Summarizer)</label><textarea id="promptC" rows="2" class="input-field w-full"></textarea></div>
+          <div><label class="label-sm">D. Đạo Diễn (Plot Twist)</label><textarea id="promptD" rows="2" class="input-field w-full"></textarea></div>
+          <div>
+            <label class="label-sm">I. Sự Kiện Bất Ngờ (lệnh /events [chủ đề]) — model gemini-3.5-flash/gemini-3.6-flash, fallback cả 4 API Key</label>
+            <textarea id="promptEvents" rows="2" class="input-field w-full" placeholder="Vd: Bạn là Đạo Diễn Sự Kiện Bất Ngờ, viết kịch bản gồm Mở đầu-Diễn biến-Cao trào-Kết cục bỏ ngỏ..."></textarea>
+          </div>
+        </div>
+      </section>
+
+      <!-- DIRECTOR & NPC TOGGLES + PACING -->
+      <section class="mb-6">
+        <h3 class="text-sm font-semibold text-indigo-400 mb-2">Director & NPC (Bật/Tắt & Pacing)</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+          <label class="small-toggle"><input id="enableDirector" type="checkbox" /> Bật Đạo Diễn</label>
+          <label class="small-toggle"><input id="enableNpc" type="checkbox" /> Bật NPC</label>
+          <div>
+            <label class="label-sm">Tần suất Đạo Diễn: mỗi <input id="directorInterval" type="number" min="1" class="input-field inline w-16 mx-2" /> turn &nbsp; | &nbsp; Xác suất <input id="directorChance" type="number" min="0" max="100" class="input-field inline w-16 mx-2" />%</label>
+            <p class="text-xs text-slate-500 mt-1">VD: interval=3 và chance=30 → cứ 3 turn sẽ có 30% khả năng gọi Director.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- SYSTEM PROMPTS E-H (NPC - lưu trước, dùng ở Part 3) -->
+      <section class="mb-6">
+        <h3 class="text-sm font-semibold text-slate-400 mb-2">NPC Agents (kích hoạt logic ở Part 3, lưu trước tại đây)</h3>
+        <div class="space-y-3">
+          <div><label class="label-sm">E. NPC Agent 1 – Hành động/Vật lý</label><textarea id="promptE" rows="2" class="input-field w-full"></textarea></div>
+          <div><label class="label-sm">F. NPC Agent 2 – Tâm lý/Cảm xúc ngầm</label><textarea id="promptF" rows="2" class="input-field w-full"></textarea></div>
+          <div><label class="label-sm">G. NPC Agent 3 – Bối cảnh/Môi trường</label><textarea id="promptG" rows="2" class="input-field w-full"></textarea></div>
+          <div><label class="label-sm">H. NPC Synthesizer – Lọc & Tổng hợp</label><textarea id="promptH" rows="2" class="input-field w-full"></textarea></div>
+        </div>
+      </section>
+
+      <!-- MẪU NHỊP THOẠI -->
+      <section class="mb-6">
+        <h3 class="text-sm font-semibold text-indigo-400 mb-2">Mẫu nhịp thoại [MẪU NHỊP THOẠI]</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div><label class="label-sm">Nhanh / Hỗn loạn</label><textarea id="pace1" rows="2" class="input-field w-full"></textarea></div>
+          <div><label class="label-sm">Khá nhanh / Trò chuyện thường ngày</label><textarea id="pace2" rows="2" class="input-field w-full"></textarea></div>
+          <div><label class="label-sm">Hơi chậm / Trò chuyện sâu lắng</label><textarea id="pace3" rows="2" class="input-field w-full"></textarea></div>
+          <div><label class="label-sm">Hỗn tạp / Đám đông</label><textarea id="pace4" rows="2" class="input-field w-full"></textarea></div>
+        </div>
+      </section>
+
+      <div class="flex items-center justify-between">
+        <p id="settingsStatus" class="text-xs text-slate-500"></p>
+        <button id="btnSaveSettings" class="bg-indigo-600 hover:bg-indigo-500 px-5 py-2 rounded-xl text-sm font-semibold">Lưu cài đặt</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== NOTEBOOK / EVENTS MODAL ===================== -->
+  <div id="notebookModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-bold">Sổ Tay & Sự Kiện</h2>
+        <button id="btnCloseNotebook" class="text-slate-400 hover:text-white text-xl leading-none">✕</button>
+      </div>
+
+      <div class="flex gap-2 mb-4">
+        <button id="tabNotebookBtn" class="tab-btn active px-4 py-1.5 rounded-lg text-sm bg-slate-800">Sổ Tay</button>
+        <button id="tabEventsBtn" class="tab-btn px-4 py-1.5 rounded-lg text-sm bg-slate-800">Sự Kiện</button>
+        <button id="tabSummaryBtn" class="tab-btn px-4 py-1.5 rounded-lg text-sm bg-slate-800">Tóm Tắt</button>
+      </div>
+
+      <div id="entryTabContent">
+        <!-- FORM THÊM MỚI -->
+        <div class="bg-slate-800/50 rounded-xl p-4 mb-4">
+          <label class="label-sm">Từ khóa kích hoạt (cách nhau bằng dấu phẩy)</label>
+          <input id="entryKeywords" class="input-field w-full mb-2" placeholder="vd: rừng cấm, lời nguyền, ngôi làng" />
+          <label class="label-sm">Nội dung (không giới hạn ký tự)</label>
+          <textarea id="entryContent" rows="6" class="input-field w-full"></textarea>
+          <div class="flex items-center justify-between mt-2">
+            <span id="entryCharCount" class="text-xs text-slate-500">0 ký tự</span>
+            <button id="btnAddEntry" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-1.5 rounded-lg text-sm font-semibold">+ Thêm entry</button>
+          </div>
+          <p id="entryStatus" class="text-xs text-slate-500 mt-1"></p>
+        </div>
+
+        <!-- DANH SÁCH -->
+        <div id="entryList" class="space-y-2"></div>
+      </div>
+
+      <!-- TÓM TẮT (ROLLING SUMMARY CỦA SỬ GIA) -->
+      <div id="summaryTabContent" class="hidden">
+        <div class="bg-slate-800/50 rounded-xl p-4 mb-4">
+          <div class="flex items-center justify-between mb-2">
+            <label class="label-sm mb-0">Rolling Summary (Sử Gia tự tổng hợp, bạn có thể sửa/xóa tay)</label>
+          </div>
+          <p id="summaryMeta" class="text-xs text-slate-500 mb-2"></p>
+          <textarea id="summaryContent" rows="10" maxlength="2000" class="input-field w-full"></textarea>
+          <div class="flex items-center justify-between mt-2">
+            <span id="summaryCharCount" class="text-xs text-slate-500">0 ký tự</span>
+            <div class="flex gap-2">
+              <button id="btnRunSummaryNow" class="text-xs text-indigo-300 hover:text-indigo-200 px-3 py-1.5 rounded-lg border border-indigo-800">Tóm Tắt &amp; Dọn Dẹp Ngay</button>
+              <button id="btnDeleteSummary" class="text-xs text-red-400 hover:text-red-300 px-3 py-1.5 rounded-lg border border-red-900">Xóa Tóm Tắt</button>
+              <button id="btnSaveSummary" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-1.5 rounded-lg text-sm font-semibold">Lưu Thay Đổi</button>
+            </div>
+          </div>
+          <p id="summaryStatus" class="text-xs text-slate-500 mt-1"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import {
+  getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import {
+  getFirestore, doc, setDoc, getDoc,
+  collection, addDoc, onSnapshot, query, orderBy,
+  deleteDoc, updateDoc, serverTimestamp, writeBatch
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+// ---------------- FIREBASE INIT ----------------
+const firebaseConfig = {
+  apiKey: "AIzaSyBUsOEzANf2SfFE83GOMETGm0v8MRgXUOc",
+  authDomain: "ai-rp-data.firebaseapp.com",
+  projectId: "ai-rp-data",
+  storageBucket: "ai-rp-data.firebasestorage.app",
+  messagingSenderId: "286313956650",
+  appId: "1:286313956650:web:135c662ed4092321ad0a53"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+// ---------------- CẤU HÌNH GIỚI HẠN TURN ----------------
+const MAIN_AI_CONTEXT_TURNS = 36;
+const MAX_STORED_TURNS = 250;
+const HISTORIAN_READ_TURNS = 80;
+const SUMMARY_MAX_CHARS = 2000;
+const DIRECTOR_TWIST_MAX_CHARS = 650;
+const EVENT_TURNS_TTL = 3;
+const EVENT_GEN_MODELS = ["gemini-3.5-flash", "gemini-3.6-flash"];
+const API_TIMEOUT_MS = 40000;
+
+// Helper with timeout
+async function fetchWithTimeout(url, options) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (e) {
+    if (e.name === "AbortError") throw new Error(`Timeout: API không phản hồi sau ${API_TIMEOUT_MS / 1000}s.`);
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
+
+let currentUser = null;
+let unsubMessages = null;
+let currentSettings = defaultSettings();
+let messagesCache = [];
+let isSending = false;
+let knownMessageCount = 0;
+
+// Director pacing state
+let directorCallCounter = 0;
+
+function defaultSettings() {
+  return {
+    apiKey1:"", apiKey2:"", apiKey3:"", apiKey4:"",
+    userProfile:"",
+    pinnedMemory:"",
+    promptA:"", promptB:"", promptC:"", promptD:"",
+    promptE:"", promptF:"", promptG:"", promptH:"",
+    promptEvents:"",
+    pace1:"", pace2:"", pace3:"", pace4:"",
+    activePace:"pace2",
+    // New toggles/settings
+    enableDirector: true,
+    enableNpc: true,
+    directorChance: 30,    // percent
+    directorInterval: 3    // every N turns
+  };
+}
+
+// ---------------- AUTH ----------------
+document.getElementById("btnGoogleLogin").onclick = async () => {
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (e) {
+    const el = document.getElementById("loginError");
+    el.textContent = "Đăng nhập lỗi: " + e.message;
+    el.classList.remove("hidden");
+  }
+};
+
+document.getElementById("btnLogout").onclick = () => signOut(auth);
+
+onAuthStateChanged(auth, async (user) => {
+  currentUser = user;
+  if (user) {
+    document.getElementById("loginScreen").classList.add("hidden");
+    document.getElementById("appScreen").classList.remove("hidden");
+    document.getElementById("userName").textContent = user.displayName || user.email;
+    document.getElementById("userAvatar").src = user.photoURL || "";
+    await loadSettings();
+    await loadRollingSummary();
+    await loadDirectorState();
+    await loadNpcState();
+    await loadEventState();
+    listenMessages();
+    listenEntries();
+    updatePinnedPreview();
+  } else {
+    document.getElementById("loginScreen").classList.remove("hidden");
+    document.getElementById("appScreen").classList.add("hidden");
+    if (unsubMessages) unsubMessages();
+    if (unsubNotebook) unsubNotebook();
+    if (unsubEvents) unsubEvents();
+    unsubMessages = null;
+    unsubNotebook = null;
+    unsubEvents = null;
+    messagesCache = [];
+    notebookCache = [];
+    eventsCache = [];
+    knownMessageCount = 0;
+    rollingSummaryState = { summaryText: "", lastSummarizedCount: 0 };
+    directorState = { pendingTwist: "" };
+    npcState = { pendingContext: "" };
+    eventState = { pendingEvent: "", remainingTurns: 0 };
+    document.getElementById("chatArea").innerHTML = "";
+    updatePinnedPreview();
+  }
+});
+
+// ---------------- SETTINGS: FIRESTORE SYNC ----------------
+function settingsDocRef() {
+  return doc(db, "users", currentUser.uid, "settings", "main");
+}
+
+async function loadSettings() {
+  const snap = await getDoc(settingsDocRef());
+  if (snap.exists()) {
+    currentSettings = { ...defaultSettings(), ...snap.data() };
+  } else {
+    currentSettings = defaultSettings();
+  }
+  Object.keys(currentSettings).forEach(key => {
+    const el = document.getElementById(key);
+    if (!el) return;
+    if (el.type === "checkbox") {
+      el.checked = !!currentSettings[key];
+    } else {
+      el.value = currentSettings[key] ?? "";
+    }
+  });
+  document.getElementById("activePaceSelect").value = currentSettings.activePace || "pace2";
+  updatePinnedPreview();
+}
+
+document.getElementById("activePaceSelect").onchange = async (e) => {
+  currentSettings.activePace = e.target.value;
+  try {
+    await setDoc(settingsDocRef(), { activePace: e.target.value }, { merge: true });
+  } catch (err) {
+    console.error("Lỗi lưu activePace:", err);
+  }
+};
+
+async function saveSettings() {
+  const statusEl = document.getElementById("settingsStatus");
+  statusEl.textContent = "Đang lưu...";
+  const data = {};
+  Object.keys(defaultSettings()).forEach(key => {
+    if (key === "activePace") { data[key] = currentSettings.activePace || "pace2"; return; }
+    const el = document.getElementById(key);
+    if (!el) { data[key] = currentSettings[key] ?? ""; return; }
+    if (el.type === "checkbox") data[key] = !!el.checked;
+    else if (el.type === "number") data[key] = Number(el.value || 0);
+    else data[key] = el.value || "";
+  });
+  try {
+    await setDoc(settingsDocRef(), data, { merge: true });
+    currentSettings = { ...currentSettings, ...data };
+    statusEl.textContent = "Đã lưu vào Firestore ✓";
+    updatePinnedPreview();
+    setTimeout(() => statusEl.textContent = "", 2000);
+  } catch (e) {
+    statusEl.textContent = "Lỗi khi lưu: " + e.message;
+  }
+}
+
+document.getElementById("btnOpenSettings").onclick = () =>
+  document.getElementById("settingsModal").classList.remove("hidden");
+document.getElementById("btnCloseSettings").onclick = () =>
+  document.getElementById("settingsModal").classList.add("hidden");
+document.getElementById("btnSaveSettings").onclick = saveSettings;
+
+function updatePinnedPreview() {
+  const el = document.getElementById("pinnedPreview");
+  if (currentSettings && currentSettings.pinnedMemory) {
+    el.textContent = `📌 ${currentSettings.pinnedMemory.length > 80 ? currentSettings.pinnedMemory.slice(0,80)+"…" : currentSettings.pinnedMemory}`;
+    el.classList.remove("hidden");
+  } else el.classList.add("hidden");
+}
+
+// ---------------- CHAT: FIRESTORE SYNC ----------------
+function messagesColRef() {
+  return collection(db, "users", currentUser.uid, "messages");
+}
+
+function rerenderMessages() {
+  const chatArea = document.getElementById("chatArea");
+  chatArea.innerHTML = "";
+  const total = messagesCache.length;
+  messagesCache.forEach((m, idx) => {
+    renderMessage(m.id, { role: m.role, text: m.text }, idx === total - 1);
+  });
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+function listenMessages() {
+  if (unsubMessages) unsubMessages();
+  const q = query(messagesColRef(), orderBy("createdAt", "asc"));
+  unsubMessages = onSnapshot(q, (snap) => {
+    const chatArea = document.getElementById("chatArea");
+    chatArea.innerHTML = "";
+    messagesCache = [];
+    const total = snap.size;
+    snap.docs.forEach((docSnap, idx) => {
+      const data = docSnap.data();
+      messagesCache.push({ id: docSnap.id, role: data.role, text: data.text || "" });
+      renderMessage(docSnap.id, data, idx === total - 1);
+    });
+    chatArea.scrollTop = chatArea.scrollHeight;
+    knownMessageCount = messagesCache.length;
+  });
+}
+
+// ---------------- SỔ TAY & SỰ KIỆN: FIRESTORE SYNC ----------------
+const MAX_EVENT_CHUNKS = 10;
+const NOTEBOOK_SEMANTIC_THRESHOLD = 0.5;
+let notebookCache = [];
+let eventsCache = [];
+let unsubNotebook = null, unsubEvents = null;
+let activeEntryTab = "notebook";
+
+function entryColRef(type) {
+  return collection(db, "users", currentUser.uid, type === "events" ? "events" : "notebook");
+}
+
+function listenEntries() {
+  if (unsubNotebook) unsubNotebook();
+  if (unsubEvents) unsubEvents();
+  unsubNotebook = onSnapshot(query(entryColRef("notebook"), orderBy("createdAt", "asc")), (snap) => {
+    notebookCache = [];
+    snap.forEach(d => notebookCache.push({ id: d.id, ...d.data() }));
+    if (activeEntryTab === "notebook") renderEntryList();
+  });
+  unsubEvents = onSnapshot(query(entryColRef("events"), orderBy("createdAt", "asc")), (snap) => {
+    eventsCache = [];
+    snap.forEach(d => eventsCache.push({ id: d.id, ...d.data() }));
+    if (activeEntryTab === "events") renderEntryList();
+  });
+}
+
+function renderEntryList() {
+  const listType = activeEntryTab;
+  const list = listType === "notebook" ? notebookCache : eventsCache;
+  const container = document.getElementById("entryList");
+  container.innerHTML = "";
+  if (list.length === 0) {
+    container.innerHTML = `<p class="text-xs text-slate-500">Chưa có entry nào.</p>`;
+    return;
+  }
+  list.forEach(entry => {
+    const div = document.createElement("div");
+    div.className = "entry-item";
+    div.innerHTML = `
+      <div class="flex items-start justify-between gap-2">
+        <div class="flex-1">
+          <p class="text-xs text-indigo-400 mb-1">${escapeHtml(entry.keywords || "")}</p>
+          <p class="text-sm whitespace-pre-wrap break-words">${escapeHtml(entry.content || "")}</p>
+        </div>
+        <div class="flex flex-col gap-1 shrink-0">
+          <button class="text-xs text-slate-400 hover:text-indigo-400 btnEditEntry">Sửa</button>
+          <button class="text-xs text-slate-400 hover:text-red-400 btnDeleteEntry">Xóa</button>
+        </div>
+      </div>`;
+    div.querySelector(".btnEditEntry").onclick = () => editEntry(entry, listType);
+    div.querySelector(".btnDeleteEntry").onclick = () => deleteEntry(entry.id, listType);
+    container.appendChild(div);
+  });
+}
+
+async function buildEventChunks(content, statusEl) {
+  const pieces = chunkText(content, 200);
+  const chunks = [];
+  for (let i = 0; i < pieces.length; i++) {
+    if (statusEl) statusEl.textContent = `Đang tạo embedding đoạn ${i + 1}/${pieces.length}...`;
+    let embedding = [];
+    try { embedding = await embedText(pieces[i]); }
+    catch (embErr) { console.error(`Lỗi embedding chunk ${i + 1}:`, embErr); }
+    chunks.push({ text: pieces[i], embedding });
+  }
+  return chunks;
+}
+
+async function addEntry() {
+  const targetType = activeEntryTab;
+  const keywords = document.getElementById("entryKeywords").value.trim();
+  const content = document.getElementById("entryContent").value.trim();
+  const statusEl = document.getElementById("entryStatus");
+  if (!content) { statusEl.textContent = "Nội dung không được để trống."; return; }
+
+  statusEl.textContent = "Đang tạo embedding & lưu...";
+  try {
+    if (targetType === "events") {
+      const chunks = await buildEventChunks(content, statusEl);
+      await addDoc(entryColRef(targetType), {
+        keywords, content, chunks, createdAt: serverTimestamp()
+      });
+    } else {
+      let embedding = [];
+      try { embedding = await embedText(content); }
+      catch (embErr) { console.error("Lỗi embedding (vẫn lưu entry):", embErr); }
+      await addDoc(entryColRef(targetType), {
+        keywords, content, embedding, createdAt: serverTimestamp()
+      });
+    }
+    document.getElementById("entryKeywords").value = "";
+    document.getElementById("entryContent").value = "";
+    document.getElementById("entryCharCount").textContent = "0 ký tự";
+    statusEl.textContent = "Đã lưu ✓";
+    setTimeout(() => statusEl.textContent = "", 1500);
+  } catch (e) {
+    statusEl.textContent = "Lỗi: " + e.message;
+  }
+}
+
+async function editEntry(entry, entryType) {
+  const newKeywords = prompt("Sửa từ khóa (cách nhau bằng dấu phẩy):", entry.keywords || "");
+  if (newKeywords === null) return;
+  const newContent = prompt("Sửa nội dung (không giới hạn ký tự):", entry.content || "");
+  if (newContent === null) return;
+  const trimmedContent = newContent.trim();
+  try {
+    if (entryType === "events") {
+      let chunks = entry.chunks || [];
+      if (trimmedContent !== entry.content) {
+        chunks = await buildEventChunks(trimmedContent, null);
+      }
+      await updateDoc(doc(db, "users", currentUser.uid, entryType, entry.id), {
+        keywords: newKeywords.trim(), content: trimmedContent, chunks
+      });
+    } else {
+      let embedding = entry.embedding || [];
+      if (trimmedContent !== entry.content) {
+        try { embedding = await embedText(trimmedContent); }
+        catch (embErr) { console.error("Lỗi re-embed:", embErr); }
+      }
+      await updateDoc(doc(db, "users", currentUser.uid, entryType, entry.id), {
+        keywords: newKeywords.trim(), content: trimmedContent, embedding
+      });
+    }
+  } catch (e) {
+    alert("Lỗi khi sửa: " + e.message);
+  }
+}
+
+async function deleteEntry(id, entryType) {
+  if (!confirm("Xóa entry này?")) return;
+  await deleteDoc(doc(db, "users", currentUser.uid, entryType, id));
+}
+
+document.getElementById("entryContent").addEventListener("input", (e) => {
+  document.getElementById("entryCharCount").textContent = `${e.target.value.length} ký tự`;
+});
+document.getElementById("btnAddEntry").onclick = addEntry;
+
+document.getElementById("btnOpenNotebook").onclick = () => {
+  document.getElementById("notebookModal").classList.remove("hidden");
+  renderEntryList();
+};
+document.getElementById("btnCloseNotebook").onclick = () =>
+  document.getElementById("notebookModal").classList.add("hidden");
+
+document.getElementById("tabNotebookBtn").onclick = () => switchEntryTab("notebook");
+document.getElementById("tabEventsBtn").onclick = () => switchEntryTab("events");
+document.getElementById("tabSummaryBtn").onclick = () => switchEntryTab("summary");
+
+function switchEntryTab(tab) {
+  activeEntryTab = tab;
+  document.getElementById("tabNotebookBtn").classList.toggle("active", tab === "notebook");
+  document.getElementById("tabEventsBtn").classList.toggle("active", tab === "events");
+  document.getElementById("tabSummaryBtn").classList.toggle("active", tab === "summary");
+  document.getElementById("entryTabContent").classList.toggle("hidden", tab === "summary");
+  document.getElementById("summaryTabContent").classList.toggle("hidden", tab !== "summary");
+  if (tab === "summary") {
+    renderSummaryTab();
+  } else {
+    renderEntryList();
+  }
+}
+
+function updateSummaryCharCount() {
+  const len = document.getElementById("summaryContent").value.length;
+  const el = document.getElementById("summaryCharCount");
+  el.textContent = `${len} / ${SUMMARY_MAX_CHARS} ký tự`;
+  el.classList.toggle("text-red-400", len >= SUMMARY_MAX_CHARS);
+  el.classList.toggle("text-slate-500", len < SUMMARY_MAX_CHARS);
+}
+
+function renderSummaryTab() {
+  const textarea = document.getElementById("summaryContent");
+  textarea.value = rollingSummaryState.summaryText || "";
+  updateSummaryCharCount();
+
+  const total = messagesCache.length;
+  const summarized = rollingSummaryState.lastSummarizedCount || 0;
+  const excess = Math.max(0, total - MAX_STORED_TURNS);
+  const safeToDelete = Math.min(excess, summarized);
+
+  const metaParts = [
+    summarized ? `Đã tóm tắt tới turn cũ thứ ${summarized}` : "Chưa có dữ liệu tóm tắt",
+    `${total} turn đang lưu (trần ${MAX_STORED_TURNS})`
+  ];
+  if (excess > 0) {
+    metaParts.push(safeToDelete > 0
+      ? `${safeToDelete} turn cũ đủ điều kiện tự xóa (đã tóm tắt an toàn)`
+      : `${excess} turn vượt trần nhưng CHƯA được Sử Gia tóm tắt → đang giữ lại, chưa xóa`);
+  }
+  document.getElementById("summaryMeta").textContent = metaParts.join(" · ");
+}
+
+document.getElementById("summaryContent").addEventListener("input", (e) => {
+  if (e.target.value.length > SUMMARY_MAX_CHARS) {
+    e.target.value = e.target.value.slice(0, SUMMARY_MAX_CHARS);
+  }
+  updateSummaryCharCount();
+});
+
+document.getElementById("btnSaveSummary").onclick = async () => {
+  const statusEl = document.getElementById("summaryStatus");
+  let newText = document.getElementById("summaryContent").value.trim();
+  if (newText.length > SUMMARY_MAX_CHARS) {
+    newText = newText.slice(0, SUMMARY_MAX_CHARS).trim();
+  }
+  try {
+    rollingSummaryState = { ...rollingSummaryState, summaryText: newText };
+    await setDoc(rollingSummaryDocRef(), rollingSummaryState);
+    renderSummaryTab();
+    statusEl.textContent = "Đã lưu ✓";
+    setTimeout(() => statusEl.textContent = "", 1500);
+  } catch (e) {
+    statusEl.textContent = "Lỗi: " + e.message;
+  }
+};
+
+document.getElementById("btnDeleteSummary").onclick = async () => {
+  if (!confirm("Xóa toàn bộ Rolling Summary? Sử Gia sẽ tóm tắt lại từ các turn cũ gần nhất ở lần chạy tiếp theo.")) return;
+  const statusEl = document.getElementById("summaryStatus");
+  try {
+    rollingSummaryState = { summaryText: "", lastSummarizedCount: 0 };
+    await setDoc(rollingSummaryDocRef(), rollingSummaryState);
+    renderSummaryTab();
+    statusEl.textContent = "Đã xóa ✓";
+    setTimeout(() => statusEl.textContent = "", 1500);
+  } catch (e) {
+    statusEl.textContent = "Lỗi: " + e.message;
+  }
+};
+
+document.getElementById("btnRunSummaryNow").onclick = async () => {
+  const statusEl = document.getElementById("summaryStatus");
+  const btn = document.getElementById("btnRunSummaryNow");
+  btn.disabled = true;
+  statusEl.textContent = "Sử Gia đang tóm tắt...";
+  try {
+    const result = await maybeRunHistorian({ force: true });
+    if (result === "no-old-turns") {
+      statusEl.textContent = "Chưa có turn cũ nào ngoài phạm vi AI Chính đang đọc để tóm tắt.";
+    } else if (result === "no-api-key") {
+      statusEl.textContent = "Thiếu API Key 2 (Sử Gia) trong Cài Đặt.";
+    } else if (result === "busy") {
+      statusEl.textContent = "Sử Gia đang chạy tự động, vui lòng thử lại sau vài giây.";
+    } else if (result === "no-content") {
+      statusEl.textContent = "Sử Gia trả về nội dung rỗng, giữ nguyên tóm tắt cũ.";
+    } else {
+      statusEl.textContent = "Đang dọn dẹp turn cũ đã tóm tắt...";
+      await cleanupOldMessages();
+      statusEl.textContent = "Đã tóm tắt & dọn dẹp ✓";
+    }
+    renderSummaryTab();
+    setTimeout(() => statusEl.textContent = "", 2000);
+  } catch (e) {
+    statusEl.textContent = "Lỗi: " + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+// ---------------- EMBEDDING ----------------
+async function embedTextWithKey(apiKey, text) {
+  const model = "gemini-embedding-2";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:embedContent?key=${apiKey}`;
+  const res = await fetchWithTimeout(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: `models/${model}`,
+      content: { parts: [{ text }] },
+      outputDimensionality: 768
+    })
+  });
+  if (!res.ok) throw new Error(`Embedding API lỗi (${res.status}): ${await res.text()}`);
+  const data = await res.json();
+  return data?.embedding?.values || [];
+}
+
+async function embedText(text) {
+  const keys = [currentSettings.apiKey1, currentSettings.apiKey2, currentSettings.apiKey3, currentSettings.apiKey4]
+    .map((k, i) => ({ key: (k || "").trim(), label: `API Key ${i + 1}` }))
+    .filter(k => k.key);
+  if (keys.length === 0) throw new Error("Chưa có API Key nào được nhập để tạo embedding.");
+
+  let lastErr = null;
+  for (const { key, label } of keys) {
+    try {
+      return await embedTextWithKey(key, text);
+    } catch (e) {
+      console.error(`Embedding lỗi với ${label}, thử key kế tiếp:`, e);
+      lastErr = e;
+    }
+  }
+  throw new Error(`Tất cả API Key đều lỗi khi tạo embedding. Lỗi cuối: ${lastErr?.message || "không rõ"}`);
+}
+
+function chunkText(text, maxLen) {
+  const clean = (text || "").trim();
+  if (!clean) return [];
+  if (clean.length <= maxLen) return [clean];
+
+  const sentences = clean.match(/[^.!?…\n]+[.!?…]*|\n+/g) || [clean];
+  const chunks = [];
+  let current = "";
+
+  const pushCurrent = () => { if (current.trim()) chunks.push(current.trim()); current = ""; };
+
+  for (let raw of sentences) {
+    const s = raw.trim();
+    if (!s) continue;
+    const candidate = current ? `${current} ${s}` : s;
+    if (candidate.length <= maxLen) {
+      current = candidate;
+      continue;
+    }
+    pushCurrent();
+    if (s.length <= maxLen) {
+      current = s;
+    } else {
+      const words = s.split(/\s+/);
+      let piece = "";
+      for (const w of words) {
+        const cand = piece ? `${piece} ${w}` : w;
+        if (cand.length <= maxLen) {
+          piece = cand;
+        } else {
+          if (piece) chunks.push(piece);
+          piece = w;
+        }
+      }
+      current = piece;
+    }
+  }
+  pushCurrent();
+  return chunks;
+}
+
+function cosineSim(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length === 0 || b.length === 0 || a.length !== b.length) return -1;
+  let dot = 0, na = 0, nb = 0;
+  for (let i = 0; i < a.length; i++) { dot += a[i]*b[i]; na += a[i]*a[i]; nb += b[i]*b[i]; }
+  return dot / (Math.sqrt(na) * Math.sqrt(nb) + 1e-8);
+}
+
+function keywordMatchEntries(entries, queryText) {
+  const lowerQuery = queryText.toLowerCase();
+  return entries.filter(e => {
+    const kws = (e.keywords || "").split(",").map(k => k.trim().toLowerCase()).filter(Boolean);
+    return kws.some(k => lowerQuery.includes(k));
+  });
+}
+
+function keywordMatchNotebook(entries, queryText) {
+  return keywordMatchEntries(entries, queryText);
+}
+
+function fillNotebookSemantic(keywordHits, allEntries, queryEmbedding) {
+  const keywordIds = new Set(keywordHits.map(e => e.id));
+  const rest = allEntries.filter(e => !keywordIds.has(e.id));
+  const scored = rest
+    .map(e => ({ entry: e, score: cosineSim(queryEmbedding, e.embedding) }))
+    .filter(s => s.score >= NOTEBOOK_SEMANTIC_THRESHOLD)
+    .sort((a, b) => b.score - a.score)
+    .map(s => s.entry);
+  return [...keywordHits, ...scored];
+}
+
+function keywordMatchEventChunks(entries, queryText) {
+  const matchedEntries = keywordMatchEntries(entries, queryText);
+  const chunks = [];
+  matchedEntries.forEach(e => (e.chunks || []).forEach(c => chunks.push(c)));
+  return chunks;
+}
+
+function fillEventChunksSemantic(keywordChunks, allEntries, queryEmbedding) {
+  const rankedPriority = keywordChunks
+    .map(c => ({ text: c.text, score: cosineSim(queryEmbedding, c.embedding) }))
+    .sort((a, b) => b.score - a.score);
+
+  const priorityTextSet = new Set(keywordChunks.map(c => c.text));
+  const restChunks = [];
+  allEntries.forEach(e => (e.chunks || []).forEach(c => {
+    if (!priorityTextSet.has(c.text)) restChunks.push({ text: c.text, score: cosineSim(queryEmbedding, c.embedding) });
+  }));
+  const remainingSlots = Math.max(0, MAX_EVENT_CHUNKS - rankedPriority.length);
+  const scoredRest = restChunks
+    .filter(c => c.score > -1)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, remainingSlots)
+    .map(c => c.text);
+
+  return [...new Set([...rankedPriority.map(c => c.text), ...scoredRest])].slice(0, MAX_EVENT_CHUNKS);
+}
+
+// ---------------- ROLLING SUMMARY (SỬ GIA) ----------------
+let rollingSummaryState = { summaryText: "", lastSummarizedCount: 0 };
+
+function rollingSummaryDocRef() {
+  return doc(db, "users", currentUser.uid, "state", "rollingSummary");
+}
+
+async function loadRollingSummary() {
+  try {
+    const snap = await getDoc(rollingSummaryDocRef());
+    rollingSummaryState = snap.exists()
+      ? { summaryText: snap.data().summaryText || "", lastSummarizedCount: snap.data().lastSummarizedCount || 0 }
+      : { summaryText: "", lastSummarizedCount: 0 };
+  } catch (e) {
+    console.error("Lỗi load rolling summary:", e);
+  }
+}
+
+// Simple Gemini call (no retry)
+async function callGeminiSimple(apiKey, model, promptText) {
+  if (!apiKey) throw new Error("Thiếu API Key cho model " + model);
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const res = await fetchWithTimeout(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ role: "user", parts: [{ text: promptText }] }],
+      safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+      ]
+    })
+  });
+  if (!res.ok) throw new Error(`Gemini API lỗi (${res.status}): ${await res.text()}`);
+  const data = await res.json();
+  return data?.candidates?.[0]?.content?.parts?.map(p => p.text).join("") || "";
+}
+
+// Retry wrapper for background agents & director (exponential backoff)
+async function callGeminiWithRetry(apiKey, model, promptText, maxRetries = 2) {
+  let attempt = 0;
+  let lastErr = null;
+  while (attempt <= maxRetries) {
+    try {
+      return await callGeminiSimple(apiKey, model, promptText);
+    } catch (e) {
+      lastErr = e;
+      // If last attempt, break and throw
+      if (attempt === maxRetries) break;
+      // wait exponential backoff: 1s, 2s, 4s...
+      const waitMs = 1000 * Math.pow(2, attempt);
+      await sleep(waitMs);
+      attempt++;
+    }
+  }
+  throw lastErr;
+}
+
+// maybeRunHistorian: check empty response and return codes
+const SUMMARY_TRIGGER_EVERY = 10;
+let isSummarizing = false;
+async function maybeRunHistorian(options = {}) {
+  const force = !!options.force;
+  try {
+    if (isSummarizing) return force ? "busy" : undefined;
+    if (!currentSettings.apiKey2) return force ? "no-api-key" : undefined;
+    const oldTurnsCount = knownMessageCount - MAIN_AI_CONTEXT_TURNS;
+    if (oldTurnsCount <= 0) return force ? "no-old-turns" : undefined;
+    if (!force && oldTurnsCount - rollingSummaryState.lastSummarizedCount < SUMMARY_TRIGGER_EVERY) return;
+
+    isSummarizing = true;
+    const oldTurns = messagesCache.slice(0, oldTurnsCount).slice(-HISTORIAN_READ_TURNS);
+    const turnsText = oldTurns.map(m => `${m.role === "user" ? "Người dùng" : "AI"}: ${m.text}`).join("\n");
+    const prompt = [
+      currentSettings.promptC || "Bạn là Sử Gia, hãy tóm tắt hội thoại RP một cách súc tích, giữ mốc quan trọng.",
+      `[TÓM TẮT TRƯỚC ĐÓ]\n${rollingSummaryState.summaryText || "(chưa có)"}`,
+      `[CÁC TURN CŨ CẦN GỘP VÀO TÓM TẮT]\n${turnsText}`,
+      `Viết lại bản tóm tắt tổng hợp mới, ngắn gọn, TỐI ĐA ${SUMMARY_MAX_CHARS} KÝ TỰ. Nếu gần chạm giới hạn, ` +
+      'ưu tiên giữ các mốc sự kiện/nhân vật/quan hệ quan trọng nhất, nén hoặc lược bỏ chi tiết ít quan trọng hơn.'
+    ].join("\n\n");
+
+    let newSummary = (await callGeminiSimple(currentSettings.apiKey2, "gemini-3.1-flash-lite", prompt)).trim();
+    if (!currentUser) return;
+    // If model returned empty or whitespace, do NOT overwrite existing summary
+    if (!newSummary) {
+      console.warn("Sử Gia trả về nội dung rỗng, giữ nguyên tóm tắt cũ.");
+      return "no-content";
+    }
+    if (newSummary.length > SUMMARY_MAX_CHARS) {
+      newSummary = newSummary.slice(0, SUMMARY_MAX_CHARS).trim();
+    }
+    rollingSummaryState = { summaryText: newSummary, lastSummarizedCount: oldTurnsCount };
+    await setDoc(rollingSummaryDocRef(), rollingSummaryState);
+    return "ok";
+  } catch (e) {
+    console.error("Sử Gia lỗi (không ảnh hưởng UI chính):", e);
+    if (force) throw e;
+  } finally {
+    isSummarizing = false;
+  }
+}
+
+// ==================== PART 3 ====================
+
+// ---------------- STATE: ĐẠO DIỄN ----------------
+let directorState = { pendingTwist: "" };
+
+function directorStateDocRef() {
+  return doc(db, "users", currentUser.uid, "state", "director");
+}
+async function loadDirectorState() {
+  try {
+    const snap = await getDoc(directorStateDocRef());
+    directorState = snap.exists() ? { pendingTwist: snap.data().pendingTwist || "" } : { pendingTwist: "" };
+  } catch (e) {
+    console.error("Lỗi load Director state:", e);
+  }
+}
+async function saveDirectorState() {
+  try { await setDoc(directorStateDocRef(), directorState); }
+  catch (e) { console.error("Lỗi lưu Director state:", e); }
+}
+
+// ---------------- STATE: PENDING NPC CONTEXT ----------------
+let npcState = { pendingContext: "" };
+
+function npcStateDocRef() {
+  return doc(db, "users", currentUser.uid, "state", "npc");
+}
+async function loadNpcState() {
+  try {
+    const snap = await getDoc(npcStateDocRef());
+    npcState = snap.exists() ? { pendingContext: snap.data().pendingContext || "" } : { pendingContext: "" };
+  } catch (e) {
+    console.error("Lỗi load NPC state:", e);
+  }
+}
+async function saveNpcState() {
+  try { await setDoc(npcStateDocRef(), npcState); }
+  catch (e) { console.error("Lỗi lưu NPC state:", e); }
+}
+
+// ---------------- STATE: SỰ KIỆN ----------------
+let eventState = { pendingEvent: "", remainingTurns: 0 };
+
+function eventStateDocRef() {
+  return doc(db, "users", currentUser.uid, "state", "event");
+}
+async function loadEventState() {
+  try {
+    const snap = await getDoc(eventStateDocRef());
+    eventState = snap.exists()
+      ? { pendingEvent: snap.data().pendingEvent || "", remainingTurns: snap.data().remainingTurns || 0 }
+      : { pendingEvent: "", remainingTurns: 0 };
+  } catch (e) {
+    console.error("Lỗi load Event state:", e);
+  }
+}
+async function saveEventState() {
+  try { await setDoc(eventStateDocRef(), eventState); }
+  catch (e) { console.error("Lỗi lưu Event state:", e); }
+}
+
+function extractJson(text) {
+  if (!text) return null;
+  const cleaned = text.replace(/```json/gi, "").replace(/```/g, "").trim();
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  if (start === -1 || end === -1 || end < start) return null;
+  try { return JSON.parse(cleaned.slice(start, end + 1)); }
+  catch { return null; }
+}
+
+// ---------------- REVIEWER ----------------
+async function callReviewer(latestUserText, draftReply) {
+  if (!currentSettings.promptB || !currentSettings.apiKey1) return draftReply;
+  try {
+    const prompt = [
+      currentSettings.promptB,
+      `[TIN NHẮN NGƯỜI DÙNG]\n${latestUserText}`,
+      `[BẢN NHÁP TRẢ LỜI CỦA AI CHÍNH]\n${draftReply}`,
+      "Nếu bản nháp đã ổn, trả lại nguyên văn không đổi. Nếu cần chỉnh (sai văn phong, lệch nhịp, phá vỡ mạch RP...), " +
+      "hãy trả lại bản đã sửa. CHỈ trả về nội dung cuối cùng sẽ hiển thị cho người chơi, không thêm giải thích/ghi chú."
+    ].join("\n\n");
+    const reviewed = await callGeminiSimple(currentSettings.apiKey1, "gemini-3.1-flash-lite", prompt);
+    return reviewed && reviewed.trim() ? reviewed.trim() : draftReply;
+  } catch (e) {
+    console.error("Reviewer lỗi (dùng nguyên bản AI Chính):", e);
+    return draftReply;
+  }
+}
+
+// ---------------- ĐẠO DIỄN / PLOT TWIST ----------------
+let isDirectorRunning = false;
+async function maybeRunDirector(chatHistory, latestUserText, latestReply) {
+  try {
+    if (isDirectorRunning) return;
+    if (!currentSettings.enableDirector) return;
+    if (!currentSettings.promptD || !currentSettings.apiKey2) return;
+    // pacing: interval + chance
+    directorCallCounter++;
+    const interval = Number(currentSettings.directorInterval || 3);
+    if (interval > 1 && (directorCallCounter % interval) !== 0) return;
+    const chance = Number(currentSettings.directorChance ?? 100);
+    if (Math.random() * 100 >= chance) return;
+
+    isDirectorRunning = true;
+
+    const recentText = chatHistory.slice(-10)
+      .map(m => `${m.role === "user" ? "Người dùng" : "AI"}: ${m.text}`).join("\n");
+    const prompt = [
+      currentSettings.promptD,
+      `[BỐI CẢNH GẦN NHẤT]\n${recentText}`,
+      `[TÓM TẮT DÀI HẠN]\n${rollingSummaryState.summaryText || "(chưa có)"}`,
+      'Phân tích và quyết định có nên tạo bước ngoặt (plot twist) cho turn kế tiếp không. ' +
+      'CHỈ trả về đúng 1 JSON object, không thêm chữ nào khác, đúng format: ' +
+      `{"trigger_twist": true hoặc false, "twist_content": "nội dung bước ngoặt nếu true (TỐI ĐA ${DIRECTOR_TWIST_MAX_CHARS} KÝ TỰ), ngược lại để chuỗi rỗng"}`
+    ].join("\n\n");
+
+    // Use retry wrapper for robustness
+    const raw = await callGeminiWithRetry(currentSettings.apiKey2, "gemini-3.5-flash-lite", prompt, 2);
+    if (!currentUser) return;
+    const parsed = extractJson(raw);
+    if (parsed && parsed.trigger_twist === true && parsed.twist_content) {
+      let twistContent = String(parsed.twist_content).trim();
+      if (twistContent.length > DIRECTOR_TWIST_MAX_CHARS) {
+        twistContent = twistContent.slice(0, DIRECTOR_TWIST_MAX_CHARS).trim();
+      }
+      directorState = { pendingTwist: twistContent };
+      await saveDirectorState();
+    }
+  } catch (e) {
+    console.error("Đạo Diễn lỗi (không ảnh hưởng UI chính):", e);
+  } finally {
+    isDirectorRunning = false;
+  }
+}
+
+// ---------------- NPC AGENTS + SYNTHESIZER ----------------
+let isNpcRunning = false;
+async function runNpcAgent(apiKey, model, promptText, sceneText, label) {
+  if (!apiKey || !promptText) return "";
+  try {
+    const full = `${promptText}\n\n[BỐI CẢNH HIỆN TẠI]\n${sceneText}\n\nChỉ trả về phần phân tích/gợi ý của bạn, ngắn gọn, không lặp lại bối cảnh.`;
+    // Use retry wrapper for background agents
+    return await callGeminiWithRetry(apiKey, model, full, 2);
+  } catch (e) {
+    console.error(`NPC ${label} lỗi (bỏ qua agent này):`, e);
+    return "";
+  }
+}
+
+async function maybeRunNpcPipeline(chatHistory, latestUserText, latestReply) {
+  try {
+    if (isNpcRunning) return;
+    if (!currentSettings.enableNpc) return;
+    const hasAnyNpcPrompt = currentSettings.promptE || currentSettings.promptF || currentSettings.promptG;
+    if (!hasAnyNpcPrompt) return;
+    isNpcRunning = true;
+
+    const sceneText = chatHistory.slice(-6)
+      .map(m => `${m.role === "user" ? "Người dùng" : "AI"}: ${m.text}`).join("\n");
+    const twistNote = directorState.pendingTwist
+      ? `\n\n[BƯỚC NGOẶT SẮP DIỄN RA (từ Đạo Diễn) - GỢI Ý CẦN NHẤT QUÁN VỚI ĐIỀU NÀY]\n${directorState.pendingTwist}`
+      : "";
+    const fullScene = sceneText + twistNote;
+
+    const [outE, outF, outG] = await Promise.all([
+      runNpcAgent(currentSettings.apiKey3, "gemini-3.1-flash-lite", currentSettings.promptE, fullScene, "Agent 1 - Hành động/Vật lý"),
+      runNpcAgent(currentSettings.apiKey3, "gemini-3.5-flash-lite", currentSettings.promptF, fullScene, "Agent 2 - Tâm lý/Cảm xúc ngầm"),
+      runNpcAgent(currentSettings.apiKey4, "gemini-3.1-flash-lite", currentSettings.promptG, fullScene, "Agent 3 - Bối cảnh/Môi trường")
+    ]);
+
+    const agentOutputs = [
+      outE ? `[AGENT 1 - HÀNH ĐỘNG/VẬT LÝ]\n${outE}` : "",
+      outF ? `[AGENT 2 - TÂM LÝ/CẢM XÚC NGẦM]\n${outF}` : "",
+      outG ? `[AGENT 3 - BỐI CẢNH/MÔI TRƯỜNG]\n${outG}` : ""
+    ].filter(Boolean).join("\n\n");
+
+    if (!agentOutputs || !currentSettings.apiKey4) { isNpcRunning = false; return; }
+
+    const synthPrompt = [
+      currentSettings.promptH || "Bạn là Synthesizer, hãy lọc và tổng hợp các gợi ý NPC dưới đây thành một đoạn ngắn gọn, nhất quán.",
+      agentOutputs,
+      "Tổng hợp thành 1 đoạn NGẮN GỌN, chỉ giữ chi tiết đáng dùng, loại bỏ trùng lặp/mâu thuẫn."
+    ].join("\n\n");
+
+    const synthesized = await callGeminiWithRetry(currentSettings.apiKey4, "gemini-3.5-flash-lite", synthPrompt, 2);
+    if (!currentUser) return;
+    if (synthesized && synthesized.trim()) {
+      npcState = { pendingContext: synthesized.trim() };
+      await saveNpcState();
+    }
+  } catch (e) {
+    console.error("NPC pipeline lỗi (không ảnh hưởng UI chính):", e);
+  } finally {
+    isNpcRunning = false;
+  }
+}
+
+async function maybeRunDirectorAndNpc(chatHistory, latestUserText, latestReply) {
+  await maybeRunDirector(chatHistory, latestUserText, latestReply);
+  maybeRunNpcPipeline(chatHistory, latestUserText, latestReply);
+}
+
+// ---------------- SỰ KIỆN BẤT NGỜ ----------------
+function buildEventGenPrompt(topic, recentText) {
+  const topicInstruction = topic
+    ? `Chủ đề bắt buộc cho sự kiện: "${topic}". Toàn bộ kịch bản phải xoay quanh chủ đề này.`
+    : "Không có chủ đề cụ thể được chỉ định - hãy TỰ CHỌN NGẪU NHIÊN 1 chủ đề bất ngờ, miễn là hợp lý với bối cảnh RP hiện tại.";
+  return [
+    currentSettings.promptEvents || "Bạn là Đạo Diễn Sự Kiện Bất Ngờ cho một cuộc roleplay.",
+    topicInstruction,
+    `[BỐI CẢNH GẦN NHẤT]\n${recentText || "(chưa có hội thoại)"}`,
+    `[TÓM TẮT DÀI HẠN]\n${rollingSummaryState.summaryText || "(chưa có)"}`,
+    "Hãy soạn 1 kịch bản sự kiện bất ngờ gồm đúng 4 phần, ghi rõ tiêu đề từng phần:\n" +
+    "[MỞ ĐẦU] ...\n[DIỄN BIẾN] ...\n[CAO TRÀO] ...\n[KẾT CỤC] để BỎ NGỎ, không giải quyết dứt điểm, " +
+    "chừa đất cho AI Chính và người chơi tự dẫn dắt tiếp.\n" +
+    "Đây CHỈ là định hướng ngầm nội bộ cho AI Chính, KHÔNG hiển thị trực tiếp cho người chơi -> " +
+    "viết súc tích, đúng ý, không cần văn phong trau chuốt."
+  ].join("\n\n");
+}
+
+async function callGeminiEventFallback(promptText) {
+  const keys = [currentSettings.apiKey1, currentSettings.apiKey2, currentSettings.apiKey3, currentSettings.apiKey4]
+    .map((k, i) => ({ key: (k || "").trim(), label: `API Key ${i + 1}` }))
+    .filter(k => k.key);
+  if (keys.length === 0) throw new Error("Chưa có API Key nào trong Cài đặt để tạo Sự Kiện Bất Ngờ.");
+
+  let lastErr = null;
+  for (const { key, label } of keys) {
+    for (const model of EVENT_GEN_MODELS) {
+      try {
+        const out = await callGeminiSimple(key, model, promptText);
+        if (out && out.trim()) return out.trim();
+      } catch (e) {
+        console.error(`Sự Kiện Bất Ngờ lỗi với ${label} / ${model}, thử tiếp:`, e);
+        lastErr = e;
+      }
+    }
+  }
+  throw new Error(`Tất cả API Key/model đều lỗi khi tạo Sự Kiện Bất Ngờ. Lỗi cuối: ${lastErr?.message || "không rõ"}`);
+}
+
+let isEventGenRunning = false;
+async function generateRandomEvent(topic) {
+  if (isEventGenRunning) return "busy";
+  isEventGenRunning = true;
+  try {
+    const recentText = messagesCache.slice(-10)
+      .map(m => `${m.role === "user" ? "Người dùng" : "AI"}: ${m.text}`).join("\n");
+    const prompt = buildEventGenPrompt(topic, recentText);
+    const content = await callGeminiEventFallback(prompt);
+    if (!currentUser) return "ok";
+    eventState = { pendingEvent: content, remainingTurns: EVENT_TURNS_TTL };
+    await saveEventState();
+    return "ok";
+  } finally {
+    isEventGenRunning = false;
+  }
+}
+
+// ---------------- RENDER MESSAGE & ACTIONS ----------------
+function renderMessage(id, msg, isLast) {
+  const chatArea = document.getElementById("chatArea");
+  const wrap = document.createElement("div");
+  wrap.className = "msg-wrap group relative " + (msg.role === "user" ? "text-right" : "text-left");
+  wrap.dataset.id = id;
+
+  const bubbleWrap = document.createElement("div");
+  bubbleWrap.className = "inline-block max-w-[85%] text-left";
+  bubbleWrap.innerHTML = renderContentParts(msg.text || "");
+
+  const lockActions = isLast && isSending;
+
+  const actions = document.createElement("div");
+  actions.className = "msg-actions gap-2 mt-1 text-xs";
+  if (lockActions) {
+    actions.innerHTML = `<span class="text-slate-600 italic">Đang chờ AI trả lời...</span>`;
+  } else {
+    // Add Regenerate if model and is last
+    let actionHtml = `
+      <button class="btnEdit text-slate-400 hover:text-indigo-400">Sửa</button>
+      <button class="btnDelete text-slate-400 hover:text-red-400">Xóa</button>
+    `;
+    if (msg.role === "model" && isLast) {
+      actionHtml += `<button class="btnReg text-slate-400 hover:text-amber-300">🔁 Regenerate</button>`;
+    }
+    actions.innerHTML = actionHtml;
+    actions.querySelector(".btnEdit").onclick = () => editMessage(id, msg.text);
+    actions.querySelector(".btnDelete").onclick = () => deleteMessage(id);
+    const regBtn = actions.querySelector(".btnReg");
+    if (regBtn) regBtn.onclick = () => regenerateMessage(id);
+  }
+
+  wrap.appendChild(bubbleWrap);
+  wrap.appendChild(actions);
+
+  if (!lockActions) {
+    let pressTimer;
+    wrap.addEventListener("mousedown", () => pressTimer = setTimeout(() => toggleActions(wrap), 450));
+    wrap.addEventListener("touchstart", () => pressTimer = setTimeout(() => toggleActions(wrap), 450));
+    ["mouseup","mouseleave","touchend","touchmove"].forEach(ev =>
+      wrap.addEventListener(ev, () => clearTimeout(pressTimer))
+    );
+  }
+
+  chatArea.appendChild(wrap);
+}
+
+function toggleActions(wrap) {
+  const wasOpen = wrap.classList.contains("show-actions");
+  document.querySelectorAll(".msg-wrap.show-actions").forEach(el => el.classList.remove("show-actions"));
+  if (!wasOpen) wrap.classList.add("show-actions");
+}
+
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".msg-wrap")) {
+    document.querySelectorAll(".msg-wrap.show-actions").forEach(el => el.classList.remove("show-actions"));
+  }
+});
+
+function renderContentParts(text) {
+  const parts = text.split(/("(?:[^"\\]|\\.)*")/g).filter(p => p.length > 0);
+  return parts.map(part => {
+    if (part.startsWith('"') && part.endsWith('"')) {
+      const inner = part.slice(1, -1);
+      return `<span class="inline-block bg-indigo-600/80 text-white px-3 py-2 rounded-2xl rounded-bl-sm my-1 whitespace-pre-wrap break-words">${escapeHtml(inner)}</span>`;
+    } else if (part.trim().length > 0) {
+      return `<div class="text-sm text-slate-400 italic my-1 whitespace-pre-wrap break-words">${escapeHtml(part)}</div>`;
+    }
+    return "";
+  }).join("");
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+async function editMessage(id, oldText) {
+  const newText = prompt("Sửa tin nhắn:", oldText);
+  if (newText !== null && newText.trim() !== "") {
+    await updateDoc(doc(db, "users", currentUser.uid, "messages", id), { text: newText.trim() });
+  }
+}
+
+async function deleteMessage(id) {
+  if (confirm("Xóa tin nhắn này?")) {
+    await deleteDoc(doc(db, "users", currentUser.uid, "messages", id));
+  }
+}
+
+// ---------------- CLEANUP OLD MESSAGES (SLIDING WINDOW) ----------------
+let isCleaningUp = false;
+async function cleanupOldMessages() {
+  if (isCleaningUp) return;
+  const total = messagesCache.length;
+  if (total <= MAX_STORED_TURNS) return;
+  const excess = total - MAX_STORED_TURNS;
+  const safeToDelete = Math.min(excess, rollingSummaryState.lastSummarizedCount || 0);
+  if (safeToDelete <= 0) return;
+  isCleaningUp = true;
+  try {
+    const toDelete = messagesCache.slice(0, safeToDelete);
+    // Use a single batch to delete messages AND update rollingSummaryState -> avoid race if reload between commit and setDoc
+    const batch = writeBatch(db);
+    toDelete.forEach(m => batch.delete(doc(db, "users", currentUser.uid, "messages", m.id)));
+    // update rolling summary count in same batch to keep atomicity
+    const newRolling = {
+      ...rollingSummaryState,
+      lastSummarizedCount: (rollingSummaryState.lastSummarizedCount || 0) - safeToDelete
+    };
+    batch.set(rollingSummaryDocRef(), newRolling, { merge: true });
+    await batch.commit();
+    // update local state
+    rollingSummaryState = newRolling;
+    knownMessageCount -= safeToDelete;
+  } catch (e) {
+    console.error("Lỗi khi dọn turn cũ:", e);
+  } finally {
+    isCleaningUp = false;
+  }
+}
+
+// ---------------- GEMINI CALL (AI Chính) ----------------
+async function callGeminiMain(chatHistory, latestUserText) {
+  const apiKey = currentSettings.apiKey1;
+  if (!apiKey) throw new Error("Chưa nhập API Key 1 trong Cài Đặt.");
+
+  let eventsBlock = "", notebookBlock = "";
+  if (eventsCache.length > 0 || notebookCache.length > 0) {
+    const eventChunksKeywordHit = keywordMatchEventChunks(eventsCache, latestUserText);
+    let pickedEventChunks = [...new Set(eventChunksKeywordHit.map(c => c.text))].slice(0, MAX_EVENT_CHUNKS);
+    let pickedNotebook = keywordMatchNotebook(notebookCache, latestUserText);
+
+    try {
+      const queryEmbedding = await embedText(latestUserText);
+      pickedEventChunks = fillEventChunksSemantic(eventChunksKeywordHit, eventsCache, queryEmbedding);
+      pickedNotebook = fillNotebookSemantic(pickedNotebook, notebookCache, queryEmbedding);
+    } catch (ragErr) {
+      console.error("RAG semantic lỗi (giữ nguyên kết quả keyword-match, không chặn AI Chính):", ragErr);
+    }
+
+    if (pickedEventChunks.length) eventsBlock = "[SỰ KIỆN ĐÃ QUA]\n" + pickedEventChunks.map(c => `- ${c}`).join("\n");
+    if (pickedNotebook.length) notebookBlock = "[SỔ TAY]\n" + pickedNotebook.map(e => `- ${e.content}`).join("\n");
+  }
+
+  const summaryBlock = rollingSummaryState.summaryText
+    ? `[ROLLING SUMMARY]\n${rollingSummaryState.summaryText}` : "";
+
+  const paceKey = currentSettings.activePace || "pace2";
+  const paceBlock = currentSettings[paceKey] ? `[MẪU NHỊP THOẠI]\n${currentSettings[paceKey]}` : "";
+
+  const twistBlock = directorState.pendingTwist
+    ? `[PLOT TWIST]\n${directorState.pendingTwist}` : "";
+  const npcContextBlock = npcState.pendingContext
+    ? `[PENDING NPC CONTEXT]\n${npcState.pendingContext}` : "";
+
+  const randomEventBlock = eventState.pendingEvent
+    ? `[SỰ KIỆN BẤT NGỜ - định hướng ngầm, KHÔNG tiết lộ trực tiếp cho người chơi, dẫn dắt tiệm tiến qua nhiều lượt]\n${eventState.pendingEvent}`
+    : "";
+
+  // include pinned memory directly into system instruction (no embedding)
+  const pinnedBlock = currentSettings.pinnedMemory
+    ? `[GHI CHÚ QUAN TRỌNG]\n${currentSettings.pinnedMemory}`
+    : "";
+
+  const systemInstructionText = [
+    currentSettings.promptA || "",
+    currentSettings.userProfile ? `[USER PROFILE]\n${currentSettings.userProfile}` : "",
+    pinnedBlock,
+    eventsBlock,
+    notebookBlock,
+    summaryBlock,
+    paceBlock,
+    twistBlock,
+    npcContextBlock,
+    randomEventBlock,
+  ].filter(Boolean).join("\n\n");
+
+  const model = "gemini-3.5-flash-lite";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+  const trimmedHistory = [...chatHistory];
+  while (trimmedHistory.length > 0 && trimmedHistory[0].role !== "user") {
+    trimmedHistory.shift();
+  }
+
+  const contents = [];
+  for (const m of trimmedHistory) {
+    const role = m.role === "user" ? "user" : "model";
+    const safeText = (m.text && m.text.trim()) ? m.text : "(Trống)";
+    const last = contents[contents.length - 1];
+    if (last && last.role === role) {
+      last.parts[0].text += `\n\n${safeText}`;
+    } else {
+      contents.push({ role, parts: [{ text: safeText }] });
+    }
+  }
+
+  const body = {
+    systemInstruction: { parts: [{ text: systemInstructionText }] },
+    contents,
+    safetySettings: [
+      { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+    ]
+  };
+
+  const res = await fetchWithTimeout(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Gemini API lỗi (${res.status}): ${errText}`);
+  }
+  const data = await res.json();
+  const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join("") || "(Không có phản hồi)";
+
+  // reset director/npc/randomEvent usage only after fetch success
+  if (directorState.pendingTwist) {
+    directorState = { pendingTwist: "" };
+    saveDirectorState();
+  }
+  if (npcState.pendingContext) {
+    npcState = { pendingContext: "" };
+    saveNpcState();
+  }
+  if (eventState.pendingEvent) {
+    const remaining = (eventState.remainingTurns || 0) - 1;
+    eventState = remaining > 0
+      ? { pendingEvent: eventState.pendingEvent, remainingTurns: remaining }
+      : { pendingEvent: "", remainingTurns: 0 };
+    saveEventState();
+  }
+
+  return text;
+}
+
+// ---------------- SEND FLOW ----------------
+const inputText = document.getElementById("inputText");
+const btnSend = document.getElementById("btnSend");
+const sendStatus = document.getElementById("sendStatus");
+
+inputText.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    handleSend();
+  }
+});
+btnSend.onclick = handleSend;
+
+inputText.addEventListener("input", () => {
+  inputText.style.height = "auto";
+  inputText.style.height = Math.min(200, inputText.scrollHeight) + "px";
+});
+
+async function handleSend() {
+  if (isSending) return;
+
+  const text = inputText.value.trim();
+  if (!text || !currentUser) return;
+
+  const eventsMatch = text.match(/^\/events(?:\s+([\s\S]+))?$/i);
+  if (eventsMatch) {
+    const topic = (eventsMatch[1] || "").trim();
+    inputText.value = "";
+    btnSend.disabled = true;
+    isSending = true;
+    sendStatus.textContent = "Đang chuẩn bị sự kiện bất ngờ...";
+    try {
+      const result = await generateRandomEvent(topic);
+      sendStatus.textContent = result === "busy"
+        ? "Đang có 1 sự kiện khác được soạn, thử lại sau vài giây."
+        : "✨ Sự kiện bất ngờ đã sẵn sàng, sẽ tự lộ diện dần trong các lượt trò chuyện tiếp theo.";
+    } catch (e) {
+      inputText.value = text;
+      sendStatus.textContent = "⚠️ Lỗi tạo sự kiện: " + e.message;
+    } finally {
+      btnSend.disabled = false;
+      isSending = false;
+      setTimeout(() => {
+        if (sendStatus.textContent.startsWith("✨")) sendStatus.textContent = "";
+      }, 3000);
+    }
+    return;
+  }
+
+  btnSend.disabled = true;
+  isSending = true;
+  inputText.value = "";
+  sendStatus.textContent = "Đang gửi...";
+
+  try {
+    const recentTurns = messagesCache.slice(-MAIN_AI_CONTEXT_TURNS);
+    const chatHistory = [...recentTurns.map(m => ({ role: m.role, text: m.text })), { role: "user", text }];
+
+    const userMsgRef = await addDoc(messagesColRef(), { role: "user", text, createdAt: serverTimestamp() });
+    knownMessageCount++;
+
+    sendStatus.textContent = "AI Chính đang trả lời...";
+    let replyText;
+    try {
+      replyText = await callGeminiMain(chatHistory, text);
+    } catch (apiErr) {
+      try {
+        await deleteDoc(userMsgRef);
+        knownMessageCount--;
+      } catch (rollbackErr) {
+        console.error("Lỗi rollback tin nhắn user sau khi AI lỗi:", rollbackErr);
+      }
+      inputText.value = text;
+      sendStatus.textContent = "⚠️ Lỗi gọi AI: " + apiErr.message + " (tin nhắn của bạn đã được khôi phục vào ô nhập, gửi lại được ngay)";
+      return;
+    }
+
+    sendStatus.textContent = "Reviewer đang kiểm tra...";
+    replyText = await callReviewer(text, replyText);
+
+    await addDoc(messagesColRef(), { role: "model", text: replyText, createdAt: serverTimestamp() });
+    knownMessageCount++;
+    sendStatus.textContent = "";
+
+    (async () => {
+      await maybeRunHistorian();
+      await cleanupOldMessages();
+      if (activeEntryTab === "summary") renderSummaryTab();
+    })();
+    maybeRunDirectorAndNpc(chatHistory.concat([{ role: "model", text: replyText }]), text, replyText);
+  } catch (e) {
+    sendStatus.textContent = "Lỗi: " + e.message;
+  } finally {
+    btnSend.disabled = false;
+    isSending = false;
+    rerenderMessages();
+  }
+}
+
+// ---------------- REGENERATE (🔁) ----------------
+async function regenerateMessage(modelMsgId) {
+  if (isSending) return;
+  // Find index and previous user text
+  const idx = messagesCache.findIndex(m => m.id === modelMsgId);
+  if (idx === -1) { alert("Không tìm thấy tin nhắn."); return; }
+  // find previous user message before this model message
+  let prevUser = null;
+  for (let i = idx - 1; i >= 0; i--) {
+    if (messagesCache[i].role === "user") { prevUser = messagesCache[i]; break; }
+  }
+  if (!prevUser) { alert("Không tìm thấy tin nhắn người dùng liền kề để regenerate."); return; }
+
+  // Lock sending
+  isSending = true;
+  sendStatus.textContent = "Regenerating...";
+  btnSend.disabled = true;
+  try {
+    // delete old model message
+    try {
+      await deleteDoc(doc(db, "users", currentUser.uid, "messages", modelMsgId));
+      knownMessageCount = Math.max(0, knownMessageCount - 1);
+    } catch (e) {
+      console.warn("Không thể xóa model message cũ trước khi regenerate:", e);
+    }
+    rerenderMessages();
+
+    // Build chatHistory up to MAIN_AI_CONTEXT_TURNS from current cache (excluding deleted model)
+    const recentTurns = messagesCache.slice(-MAIN_AI_CONTEXT_TURNS).map(m => ({ role: m.role, text: m.text }));
+    // Append the previous user text as final user input (do NOT save a new user doc)
+    const chatHistory = [...recentTurns, { role: "user", text: prevUser.text }];
+
+    // Call Gemini main (like a resend) and then reviewer, and finally save the new model message
+    let newReply;
+    try {
+      newReply = await callGeminiMain(chatHistory, prevUser.text);
+    } catch (apiErr) {
+      sendStatus.textContent = "⚠️ Lỗi gọi AI khi regenerate: " + apiErr.message;
+      // We didn't save model message; user can try again
+      return;
+    }
+    sendStatus.textContent = "Reviewer đang kiểm tra...";
+    newReply = await callReviewer(prevUser.text, newReply);
+    await addDoc(messagesColRef(), { role: "model", text: newReply, createdAt: serverTimestamp() });
+    knownMessageCount++;
+    // fire background processes for next turn
+    maybeRunDirectorAndNpc(chatHistory.concat([{ role: "model", text: newReply }]), prevUser.text, newReply);
+  } catch (e) {
+    console.error("Lỗi regenerate:", e);
+    sendStatus.textContent = "Lỗi regenerate: " + e.message;
+  } finally {
+    isSending = false;
+    btnSend.disabled = false;
+    sendStatus.textContent = "";
+    rerenderMessages();
+  }
+}
+
+</script>
+</body>
+</html>

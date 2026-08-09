@@ -1657,8 +1657,8 @@ async function cleanupOldMessages() {
 // Thêm 1 câu nhắc chung, dùng lại ở cả 2 nơi để không mất tác dụng của promptA qua các bước sau.
 const LENGTH_GUARD_REMINDER =
   "TUYỆT ĐỐI tuân thủ đúng yêu cầu của luật [OUTPUT_RULESET] đã nêu trong hướng dẫn hệ thống (system prompt) và đọc kỹ lại chính (system prompt) cho" +
-  "phản hồi IC lần này — Mẫu nhịp thoại (paceBlock) là mẫu minh hoạ giọng văn,cách nhân vật nói/hành động,cách NARRTOR tả để học theo và áp dụng trong rp. Tuyệt đối " +
-  "CẤM thoại theo lượt (turn base),Thoại dài thành một cục, Nên Chia đoạn: thoại và hành động đan xen nhau giữa các nhân vật, không khối tường văn, Im lặng / chen lời / bỏ lửng / thay đổi chủ đề / phản bác / hùa theo/ đáp lời ngắn/ ngắt lời đều được.";
+  "phản hồi IC lần này — Mẫu nhịp thoại (paceBlock) là mẫu minh hoạ giọng văn,cách nhân vật nói/hành động,cách NARRTOR tả để học theo và áp dụng trong rp. Milky là nhân vật độc quyền của user,CẤM thoại/hành động/nội suy ngoại suy hay hoàn thiện hành động/suy nghĩ/quyết định/trạng thái/cảm xúc của thay user. Tuyệt đối " +
+  "CẤM thoại theo lượt (turn base),Thoại dài thành một cục, Nên Chia đoạn: thoại và hành động đan xen nhau giữa các nhân vật, không khối tường văn, Im lặng / chen lời / bỏ lửng / thay đổi chủ đề / phản bác / hùa theo/ đáp lời ngắn/ ngắt lời đều được. thoại có thể dài hơn nếu nó là giải thích/bày tỏ cảm xúc. ";
 
 // ---------------- GEMINI CALL (AI Chính) ----------------
 async function callGeminiMain(chatHistory, latestUserText) {

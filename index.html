@@ -263,9 +263,9 @@ try {
 }
 
 // ---------------- CẤU HÌNH GIỚI HẠN TURN ----------------
-const MAIN_AI_CONTEXT_TURNS = 16;
+const MAIN_AI_CONTEXT_TURNS = 10;
 const MAX_STORED_TURNS = 250;
-const HISTORIAN_READ_TURNS = 80;
+const HISTORIAN_READ_TURNS = 90;
 const SUMMARY_MAX_CHARS = 2000;
 const DIRECTOR_TWIST_MAX_CHARS = 650;
 const EVENT_TURNS_TTL = 3;
@@ -1674,7 +1674,7 @@ async function cleanupOldMessages() {
 const LENGTH_GUARD_REMINDER =
   "TUYỆT ĐỐI tuân thủ đúng yêu cầu của luật [OUTPUT_RULESET] đã nêu trong hướng dẫn hệ thống (system prompt) và đọc kỹ lại chính (system prompt) cho" +
   "phản hồi IC lần này — Mẫu nhịp thoại (paceBlock) là mẫu minh hoạ giọng văn,cách nhân vật nói/hành động,cách NARRTOR tả để học theo và áp dụng trong rp. Milky là nhân vật độc quyền của user,CẤM thoại/hành động/nội suy ngoại suy hay hoàn thiện hành động/suy nghĩ/quyết định/trạng thái/cảm xúc của thay user. Tuyệt đối " +
-  "CẤM thoại theo lượt (turn base),Thoại dài thành một cục, Nên Chia đoạn: thoại và hành động đan xen nhau giữa các nhân vật, không khối tường văn, Im lặng / chen lời / bỏ lửng / thay đổi chủ đề / phản bác / hùa theo/ đáp lời ngắn/ ngắt lời đều được. thoại có thể dài hơn nếu nó là giải thích/bày tỏ cảm xúc. ";
+  "CẤM thoại theo lượt (turn base),Thoại dài thành một cục, Nên Chia đoạn: thoại và hành động đan xen nhau giữa các nhân vật, không khối tường văn, Im lặng / chen lời / bỏ lửng / thay đổi chủ đề / phản bác / hùa theo/ đáp lời ngắn/ ngắt lời một cách tự nhiên. Nếu nó là giải thích/bày tỏ cảm xúc sâu sắc nên chia ra thành các đoạn ngắn (2 beat) xen kẽ là vài hành động nhỏ của nhân vật hoặc để nhân vật khác cắt ngang nối tiếp phần còn lại nếu hợp lý. ";
 
 // ---------------- GEMINI CALL (AI Chính) ----------------
 async function callGeminiMain(chatHistory, latestUserText) {

@@ -309,7 +309,7 @@ const TIMELINE_SEMANTIC_THRESHOLD = 0.45;
 // cách Sử Gia tự query riêng để tránh lệch index khi tổng tin nhắn thật vượt MESSAGES_QUERY_LIMIT);
 // đưa kèm TIMELINE_CONTEXT_ENTRIES entry timeline gần nhất để AI tự quyết định "new" hay "merge".
 const TIMELINE_TRIGGER_EVERY = 5;
-const TIMELINE_READ_TURNS = 40;
+const TIMELINE_READ_TURNS = 50;
 const TIMELINE_CONTEXT_ENTRIES = 18;
 const API_TIMEOUT_MS = 40000;
 // Timeline Tracker dùng thinkingLevel "high" + tối đa 10 lượt fallback (2 model × 5 key) -> mỗi lượt
@@ -1721,7 +1721,7 @@ async function maybeRunTimelineTracker(options = {}) {
           // Tracker là tác vụ phán đoán/phân loại nhiều bước (2 vòng test tầm trung/tầm nhẹ, quyết định
           // new-vs-merge, tách nhiều sự kiện thành nhiều action riêng) -> cần suy luận kỹ hơn để giảm
           // rủi ro merge nhầm/gộp nhầm sự kiện, khác hẳn AI Chính (cần sáng tạo, không cần suy luận sâu).
-          const out = await callGeminiSimple(key, model, fullPrompt, GEN_CONFIG_TIMELINE_TRACKER, "high", TIMELINE_API_TIMEOUT_MS);
+          const out = await callGeminiSimple(key, model, fullPrompt, GEN_CONFIG_TIMELINE_TRACKER, "medium", TIMELINE_API_TIMEOUT_MS);
           if (out && out.trim()) { rawOutput = out.trim(); break outer; }
         } catch (e) {
           console.error(`Timeline Tracker lỗi với ${label}/${model}:`, e);

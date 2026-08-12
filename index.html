@@ -1396,7 +1396,7 @@ const GEN_CONFIG_EVENT_GEN = { temperature: 1.0, topP: 0.95, maxOutputTokens: 12
 // responseMimeType ép API trả JSON thuần (không markdown/giải thích kèm theo) -> giảm hẳn rủi ro
 // parse lỗi so với dựa hoàn toàn vào lời dặn trong prompt. temperature thấp vì đây là tác vụ phân
 // loại/quyết định new-vs-merge, cần nhất quán chứ không cần sáng tạo.
-const GEN_CONFIG_TIMELINE_TRACKER = { temperature: 0.3, topP: 0.9, maxOutputTokens: 1500, responseMimeType: "application/json" };
+const GEN_CONFIG_TIMELINE_TRACKER = { temperature: 0.3, topP: 0.9, maxOutputTokens: 10000, responseMimeType: "application/json" };
 
 async function maybeRunHistorian(options = {}) {
   const force = !!options.force;

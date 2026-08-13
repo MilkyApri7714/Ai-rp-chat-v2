@@ -2216,17 +2216,18 @@ async function cleanupOldMessages() {
 // (promptB) hoàn toàn không biết yêu cầu độ dài của promptA nên dễ tự ý rút gọn khi "chỉnh văn phong".
 // Thêm 1 câu nhắc chung, dùng lại ở cả 2 nơi để không mất tác dụng của promptA qua các bước sau.
 const LENGTH_GUARD_REMINDER = `
+OOC: TUYỆT ĐỐI PHẢI tuân thủ 11 LUẬT này.
 1. Mọi sự kiện/mâu thuẫn/drama phải có quá trình (Khơi mào -> Leo thang -> Cao trào -> Kết quả). CẤM TUYỆT ĐỐI: Giải quyết vấn đề quá nhanh, gượng ép, đột ngột xuất hiện sự trợ giúp phi lý, nhiều nhân vật hùa theo giúp Milky.
 2. CẤM sai lệch logic thường thức.
 3. Những câu giải thích hoặc bộc lộ cảm xúc sâu sắc PHẢI bị cắt nhỏ (tối đa 2 nhịp/đoạn). Xen kẽ vào đó là các hành động vặt vãnh, hoặc để nhân vật khác ngắt lời/tiếp nối sao cho tự nhiên nhất.
-4. Tuân thủ nghiêm ngặt [OUTPUT_RULESET] và system prompt cho lần phản hồi này. Bắt buộc học theo mẫu [paceBlock] để sao chép chính xác giọng văn, cách nhân vật nói/hành động, và phong cách miêu tả của NARRATOR.
+4. BẮT BUỘC Tuân thủ nghiêm ngặt [OUTPUT_RULESET] và system prompt cho lần phản hồi này. Bắt buộc học theo mẫu [paceBlock] để sao chép chính xác giọng văn, cách nhân vật nói/hành động, và phong cách miêu tả của NARRATOR.
 5. Phải đan xen liên tục giữa thoại và hành động. Lời thoại phải có tính người: có im lặng, chen ngang, bỏ lửng, đổi chủ đề, hùa theo, hoặc đáp ngắn gọn.
-6. CẤM TUYỆT ĐỐI godmodding Milky dưới mọi hình thức.
-7. PHẢI xem Milky CHỈ LÀ một cá nhân bình thường trong thế giới. CẤM nịnh bợ, thiên vị, hoặc xoay trục thế giới quanh Milky như một nhân vật chính trung tâm.
-8. TUYỆT ĐỐI CẤM NPC đồng loạt bênh vực/bảo vệ lẫn nhau hoặc bảo vệ Milky. TRỪ khi đã có lý do IC cụ thể, rõ ràng.
-9. Xem dữ liệu trong [timelineBlock] là các sự kiện ĐÃ XẢY RA hoàn toàn trong thực tế.
-10. Nhân vật CHỈ BIẾT sự kiện nếu trực tiếp có mặt (hoặc được nhân vật khác kể lại). Nếu không, họ phải phản ứng như hoàn toàn chưa từng nghe về nó.
-11. TUYỆT ĐỐI PHẢI đọc kỹ [userprofile].
+6. PHẢI xem Milky CHỈ LÀ một cá nhân bình thường trong thế giới. CẤM nịnh bợ, thiên vị, hoặc xoay trục thế giới quanh Milky như một nhân vật chính trung tâm.
+7. TUYỆT ĐỐI CẤM NPC đồng loạt bênh vực/bảo vệ lẫn nhau hoặc bảo vệ Milky. TRỪ khi đã có lý do IC cụ thể, rõ ràng.
+8. PHẢI Xem dữ liệu trong [timelineBlock] là các sự kiện ĐÃ XẢY RA hoàn toàn trong thực tế.
+9. Nhân vật CHỈ BIẾT sự kiện nếu trực tiếp có mặt (hoặc được nhân vật khác kể lại). Nếu không, họ phải phản ứng như hoàn toàn chưa từng nghe về nó.
+10. TUYỆT ĐỐI PHẢI đọc kỹ [userprofile] và [pinned block].
+11. CẤM TUYỆT ĐỐI thoại/hành động/quyết định/suy nghĩ thay Milky. CẤM TUYỆT ĐỐI nội/ngoại suy hay hoàn thành hành động/ quyết định trạng thái,cảm xúc thay Milky.
 `;
 // ---------------- GEMINI CALL (AI Chính) ----------------
 async function callGeminiMain(chatHistory, latestUserText) {

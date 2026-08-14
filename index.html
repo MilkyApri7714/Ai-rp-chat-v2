@@ -296,13 +296,13 @@ try {
 // ---------------- CẤU HÌNH GIỚI HẠN TURN ----------------
 const MAIN_AI_CONTEXT_TURNS = 10;
 const MAX_STORED_TURNS = 250;
-const HISTORIAN_READ_TURNS = 90;
-const SUMMARY_MAX_CHARS = 2000;
+const HISTORIAN_READ_TURNS = 150;
+const SUMMARY_MAX_CHARS = 1800;
 const DIRECTOR_TWIST_MAX_CHARS = 650;
 const EVENT_TURNS_TTL = 3;
 const EVENT_GEN_MODELS = ["gemini-3.5-flash", "gemini-3.6-flash"];
 const TIMELINE_MODELS = ["gemini-3.5-flash", "gemini-3.6-flash"];
-const TIMELINE_MAX_RAG = 4;
+const TIMELINE_MAX_RAG = 5;
 const TIMELINE_SEMANTIC_THRESHOLD = 0.45;
 // NÂNG CẤP TIMELINE TRACKER (AI thứ 10): trigger mỗi TIMELINE_TRIGGER_EVERY turn thay vì chạy mọi
 // lúc; đọc TIMELINE_READ_TURNS turn trực tiếp từ Firestore (không phụ thuộc messagesCache, giống hệt
@@ -664,8 +664,8 @@ function listenMessages() {
 }
 
 // ---------------- SỔ TAY & SỰ KIỆN ----------------
-const MAX_EVENT_CHUNKS = 8;
-const MAX_NOTEBOOK_ENTRIES = 6;
+const MAX_EVENT_CHUNKS = 7;
+const MAX_NOTEBOOK_ENTRIES = 7;
 const NOTEBOOK_SEMANTIC_THRESHOLD = 0.5;
 let notebookCache = [];
 let eventsCache = [];
@@ -1429,12 +1429,12 @@ async function fetchRecentTurnsForTimeline() {
 // callGeminiSimple/callGeminiMain — không cần sửa tay các object dưới đây, kể cả khi 1 object bị dùng
 // chung cho cả model cũ (còn hỗ trợ temperature, vd "gemini-3.1-flash-lite") lẫn model mới.
 const GEN_CONFIG_MAIN_AI = { temperature: 1.1, topP: 0.95, maxOutputTokens: 8192 };
-const GEN_CONFIG_REVIEWER = { temperature: 0.4, topP: 0.9, maxOutputTokens: 4096 };
-const GEN_CONFIG_HISTORIAN = { temperature: 0.3, topP: 0.9, maxOutputTokens: 1200 };
-const GEN_CONFIG_DIRECTOR = { temperature: 0.6, topP: 0.9, maxOutputTokens: 500 };
+const GEN_CONFIG_REVIEWER = { temperature: 0.4, topP: 0.9, maxOutputTokens: 8192 };
+const GEN_CONFIG_HISTORIAN = { temperature: 0.3, topP: 0.9, maxOutputTokens: 8192 };
+const GEN_CONFIG_DIRECTOR = { temperature: 0.6, topP: 0.9, maxOutputTokens: 5000 };
 const GEN_CONFIG_NPC_AGENT = { temperature: 0.9, topP: 0.95, maxOutputTokens: 500 };
-const GEN_CONFIG_NPC_SYNTH = { temperature: 0.5, topP: 0.9, maxOutputTokens: 500 };
-const GEN_CONFIG_EVENT_GEN = { temperature: 1.0, topP: 0.95, maxOutputTokens: 1200 };
+const GEN_CONFIG_NPC_SYNTH = { temperature: 0.5, topP: 0.9, maxOutputTokens: 1000 };
+const GEN_CONFIG_EVENT_GEN = { temperature: 1.0, topP: 0.95, maxOutputTokens: 3400 };
 // responseMimeType ép API trả JSON thuần (không markdown/giải thích kèm theo) -> giảm hẳn rủi ro
 // parse lỗi so với dựa hoàn toàn vào lời dặn trong prompt. temperature thấp vì đây là tác vụ phân
 // loại/quyết định new-vs-merge, cần nhất quán chứ không cần sáng tạo.
@@ -1453,11 +1453,11 @@ async function maybeRunHistorian(options = {}) {
     const oldTurns = await fetchOldTurnsForHistorian(oldTurnsCount);
     const turnsText = oldTurns.map(m => `${m.role === "user" ? "Người dùng" : "AI"}: ${m.text}`).join("\n");
     const prompt = [
-      currentSettings.promptC || "Bạn là Sử Gia, hãy tóm tắt hội thoại RP một cách súc tích, giữ mốc quan trọng.",
+      currentSettings.promptC || "Bạn là Sử Gia, hãy tóm tắt hội thoại RP một cách súc tích, giữ mốc mối quan hệ quan trọng.",
       `[TÓM TẮT TRƯỚC ĐÓ]\n${rollingSummaryState.summaryText || "(chưa có)"}`,
       `[CÁC TURN CŨ CẦN GỘP VÀO TÓM TẮT]\n${turnsText}`,
       `Viết lại bản tóm tắt tổng hợp mới, ngắn gọn, TỐI ĐA ${SUMMARY_MAX_CHARS} KÝ TỰ. Nếu gần chạm giới hạn, ` +
-      'ưu tiên giữ các mốc sự kiện/nhân vật/quan hệ quan trọng nhất, nén hoặc lược bỏ chi tiết ít quan trọng hơn.'
+      'ưu tiên giữ các mối quan hệ quan trọng nhất, nén hoặc lược bỏ chi tiết ít quan trọng hơn.'
     ].join("\n\n");
 
     let newSummary = (await callGeminiSimple(currentSettings.apiKey2, "gemini-3.1-flash-lite", prompt, GEN_CONFIG_HISTORIAN)).trim();
@@ -2219,7 +2219,7 @@ async function cleanupOldMessages() {
 // (promptB) hoàn toàn không biết yêu cầu độ dài của promptA nên dễ tự ý rút gọn khi "chỉnh văn phong".
 // Thêm 1 câu nhắc chung, dùng lại ở cả 2 nơi để không mất tác dụng của promptA qua các bước sau.
 const LENGTH_GUARD_REMINDER = `
-OOC: TUYỆT ĐỐI PHẢI tuân thủ 13 LUẬT này. BUỘC PHẢI tạo một khung (OOC) ở dưới và tách biệt với IC kiểm tra xem đã tuân thủ 13 Luật này và system prompt chưa?. Lỗi ở lượt IC này, nguyên nhân, cách khắc phục. BĂT BUỘC PHẢI warp đoạn OOC này bằng 
+OOC: TUYỆT ĐỐI PHẢI tuân thủ 14 LUẬT này. BUỘC PHẢI tạo một khung (OOC) tag [Debug note] ở dưới và tách biệt với (bằng dấu cách và xuống dòng) IC. kiểm tra xem đã tuân thủ 13 Luật này và system prompt chưa?. Lỗi ở lượt IC này, nguyên nhân, cách khắc phục. BĂT BUỘC PHẢI warp đoạn OOC này bằng • ví dụ: •như này nè• để tránh lỗi.
 1. Mọi sự kiện/mâu thuẫn/drama phải có quá trình (Khơi mào -> Leo thang -> Cao trào -> Kết quả). CẤM TUYỆT ĐỐI: Giải quyết vấn đề quá nhanh, gượng ép, đột ngột xuất hiện sự trợ giúp phi lý, nhiều nhân vật hùa theo giúp Milky.
 2. CẤM sai lệch logic thường thức. CẤM vì cho nhân vật sợ hãy quá mức mà làm mất tính cách nhân vật. CẤM sợ hãi Milky quá mức/quá vô lý. 
 3. Những câu giải thích hoặc bộc lộ cảm xúc sâu sắc PHẢI bị cắt nhỏ (tối đa 2 nhịp/đoạn). Xen kẽ vào đó là các hành động vặt vãnh, hoặc để nhân vật khác ngắt lời/tiếp nối sao cho tự nhiên nhất.
@@ -2229,10 +2229,11 @@ OOC: TUYỆT ĐỐI PHẢI tuân thủ 13 LUẬT này. BUỘC PHẢI tạo một
 7. TUYỆT ĐỐI CẤM NPC đồng loạt bênh vực/bảo vệ lẫn nhau hoặc bảo vệ Milky. TRỪ khi đã có lý do IC cụ thể, rõ ràng.
 8. PHẢI Xem sự kiện trong [timelineBlock] là các sự kiện ĐÃ XẢY RA hoàn toàn trong thế giới.
 9. Nhân vật CHỈ BIẾT sự kiện nếu trực tiếp có mặt (hoặc được nhân vật khác kể lại). Nếu không, họ phải phản ứng như hoàn toàn chưa từng nghe về nó.
-10. TUYỆT ĐỐI PHẢI đọc kỹ [userprofile] và [pinned block]. TUYỆT ĐỐI PHẢI TUÂN THỦ luật [ADDRESS_SYSTEM] (luật xưng hô). 
+10. TUYỆT ĐỐI PHẢI đọc kỹ [userprofile] và [pinned block], [Notebook block], [Event block]. TUYỆT ĐỐI PHẢI TUÂN THỦ luật [ADDRESS_SYSTEM] (luật xưng hô). 
 11. Buộc PHẢI xem các NPC là các cá thể riêng lẻ không chia sẽ ký ức (NPC A biết ≠ NPC B phải biết/NPC A không biết≠ NPC B phải không biết.). 
 12. CẤM TUYỆT ĐỐI thoại/hành động/quyết định/suy nghĩ thay Milky. CẤM TUYỆT ĐỐI nội/ngoại suy hay hoàn thành hành động/ quyết định trạng thái,cảm xúc thay Milky.
-13. Vi dụ TUYỆT ĐỐI về cách phản ứng: (Milky với ba đứa bạn là bạn thân lâu năm PHẢI có cái vibe bạn thân lâu năm, dù Milky có tiết lộ thân phận cao quý thì CHỈ nên bất ngờ/trêu chọc hoặc giả vợ nịnh bợ một chút. CẤM sợ hãi, nịnh bợ quá mức),( người thân thí phải ra Vibe người thân. Người lạ hay bạn bè xã giao cũng vậy Ai loại nào vibe đó). 
+13. Vi dụ TUYỆT ĐỐI về cách phản ứng: (Milky với ba đứa bạn là bạn thân lâu năm PHẢI có cái vibe bạn thân lâu năm, dù Milky có tiết lộ thân phận cao quý thì CHỈ nên bất ngờ/trêu chọc hoặc giả vợ nịnh bợ một chút. CẤM sợ hãi, nịnh bợ quá mức),( người thân thí phải ra Vibe người thân. Người lạ hay bạn bè xã giao cũng vậy Ai loại nào vibe đó).
+14. PHẢI xem [Debug note] là bảng sửa lỗi. PHẢI ĐỌC kỹ nguyên nhân và cách sửa để TUYỆT ĐỐI TRÁNH lập lại lỗi ở lượt IC này.
 `;
 // ---------------- GEMINI CALL (AI Chính) ----------------
 async function callGeminiMain(chatHistory, latestUserText) {

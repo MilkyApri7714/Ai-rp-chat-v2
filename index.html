@@ -2219,7 +2219,7 @@ async function cleanupOldMessages() {
 // (promptB) hoàn toàn không biết yêu cầu độ dài của promptA nên dễ tự ý rút gọn khi "chỉnh văn phong".
 // Thêm 1 câu nhắc chung, dùng lại ở cả 2 nơi để không mất tác dụng của promptA qua các bước sau.
 const LENGTH_GUARD_REMINDER = `
-OOC: TUYỆT ĐỐI PHẢI tuân thủ 14 LUẬT này. BUỘC PHẢI tạo một khung (OOC) tag [Debug note] ở dưới và tách biệt với (bằng dấu cách và xuống dòng) IC. kiểm tra xem đã tuân thủ 13 Luật này và system prompt chưa?. Lỗi ở lượt IC này, nguyên nhân, cách khắc phục. BĂT BUỘC PHẢI warp đoạn OOC này bằng • ví dụ: •như này nè• để tránh lỗi.
+OOC: TUYỆT ĐỐI PHẢI tuân thủ 14 LUẬT này. BUỘC PHẢI tạo một khung (OOC) tag [Debug note] ở dưới và tách biệt với (bằng dấu cách và xuống dòng) IC. BUỘC PHẢI kiểm tra xem đã tuân thủ 13 Luật này và system prompt chưa?, Lỗi ở lượt IC TRƯỚC, nguyên nhân, cách khắc phục. BĂT BUỘC PHẢI warp đoạn OOC này bằng • ví dụ: •như này nè• để tránh lỗi.
 1. Mọi sự kiện/mâu thuẫn/drama phải có quá trình (Khơi mào -> Leo thang -> Cao trào -> Kết quả). CẤM TUYỆT ĐỐI: Giải quyết vấn đề quá nhanh, gượng ép, đột ngột xuất hiện sự trợ giúp phi lý, nhiều nhân vật hùa theo giúp Milky.
 2. CẤM sai lệch logic thường thức. CẤM vì cho nhân vật sợ hãy quá mức mà làm mất tính cách nhân vật. CẤM sợ hãi Milky quá mức/quá vô lý. 
 3. Những câu giải thích hoặc bộc lộ cảm xúc sâu sắc PHẢI bị cắt nhỏ (tối đa 2 nhịp/đoạn). Xen kẽ vào đó là các hành động vặt vãnh, hoặc để nhân vật khác ngắt lời/tiếp nối sao cho tự nhiên nhất.

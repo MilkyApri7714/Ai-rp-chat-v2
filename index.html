@@ -2238,7 +2238,7 @@ async function cleanupOldMessages() {
 // (promptB) hoàn toàn không biết yêu cầu độ dài của promptA nên dễ tự ý rút gọn khi "chỉnh văn phong".
 // Thêm 1 câu nhắc chung, dùng lại ở cả 2 nơi để không mất tác dụng của promptA qua các bước sau.
 const LENGTH_GUARD_REMINDER = `
-[REASONING ẨN, ≤6700 token là giới hạn tối đa, KHÔNG suy nghĩ lan man, PHẢI ƯU TIÊN bám RULE và các BLOCK, KHÔNG xuất ra]
+[REASONING ẨN, ≤6000 token là giới hạn tối đa, KHÔNG suy nghĩ lan man, PHẢI ƯU TIÊN bám RULE và các BLOCK, KHÔNG xuất ra]
 4 bước: (1) Bối cảnh liên quan (block nào đang active), (2) Trạng thái/động cơ NPC hiện diện, (3) Rà nhanh luật có nguy cơ vi phạm (chỉ nêu số luật), (4) Chốt hướng IC (2 câu) (5) cách xưng hô của các nhân vật(chi tiết). Không lặp bước, không viết ra ngoài, chuyển thẳng sang IC.
 
 OOC: TUYỆT ĐỐI PHẢI tuân thủ 18 LUẬT này. BUỘC PHẢI tạo khung (OOC) tag [Debug note], tách biệt với status bằng dấu cách + xuống dòng, warp bằng • ví dụ: •như này nè•.

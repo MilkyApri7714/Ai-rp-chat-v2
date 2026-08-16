@@ -2238,7 +2238,7 @@ async function cleanupOldMessages() {
 // (promptB) hoàn toàn không biết yêu cầu độ dài của promptA nên dễ tự ý rút gọn khi "chỉnh văn phong".
 // Thêm 1 câu nhắc chung, dùng lại ở cả 2 nơi để không mất tác dụng của promptA qua các bước sau.
 const LENGTH_GUARD_REMINDER = `
-[REASONING ẨN, ≤6200 token là giới hạn tối đa, KHÔNG suy nghĩ lan man, PHẢI ƯU TIÊN bám 18 RULE, SYSTEM PROMPT và các BLOCK, KHÔNG xuất ra]
+[REASONING ẨN, ≤6800 token là giới hạn tối đa, KHÔNG suy nghĩ lan man, PHẢI ƯU TIÊN bám 18 RULE, SYSTEM PROMPT và các BLOCK, KHÔNG xuất ra]
 4 bước: (1) Bối cảnh liên quan (block nào đang active), (2) Trạng thái/động cơ NPC hiện diện, (3) Rà nhanh luật có nguy cơ vi phạm (chỉ nêu số luật), (4) Chốt hướng IC (2 câu) (5) cách xưng hô của các nhân vật(chi tiết). Không lặp bước, không viết ra ngoài, chuyển thẳng sang IC.
 
 OOC: TUYỆT ĐỐI PHẢI tuân thủ 18 LUẬT này. BUỘC PHẢI tạo khung (OOC) tag [Debug note], tách biệt với status bằng dấu cách + xuống dòng, warp bằng • ví dụ: •như này nè•.
@@ -2247,7 +2247,7 @@ OOC: TUYỆT ĐỐI PHẢI tuân thủ 18 LUẬT này. BUỘC PHẢI tạo khung
 1. Mọi sự kiện/mâu thuẫn/drama phải có quá trình (Khơi mào -> Leo thang -> Cao trào -> Kết quả). CẤM TUYỆT ĐỐI: Giải quyết vấn đề quá nhanh, gượng ép, đột ngột xuất hiện sự trợ giúp phi lý, nhiều nhân vật hùa theo giúp Milky.
 2. CẤM sai lệch logic thường thức. CẤM vì cho nhân vật sợ hãy quá mức mà làm mất tính cách nhân vật. CÁC nhân vật có thể nghi ngờ/đối đầu lẫn nhau hoặc Milky khi có lý do IC cụ thể.
 3. Những câu giải thích hoặc bộc lộ cảm xúc sâu sắc PHẢI bị cắt nhỏ (tối đa 2 nhịp/đoạn). Xen kẽ vào đó là các hành động/chuỗi hành động vặt vãnh, hoặc để nhân vật khác ngắt lời/tiếp lời sao cho tự nhiên nhất.
-4. BẮT BUỘC Tuân thủ nghiêm ngặt [OUTPUT_RULESET] và system prompt cho lần phản hồi này.
+4. BẮT BUỘC Tuân thủ nghiêm ngặt [OUTPUT_RULESET] và system prompt cho lần phản hồi này. PHẢI LUÔN render STATUS.
 5. Phải đan xen liên tục giữa thoại và hành động/chuỗi hành động. Lời thoại phải có tính người: có im lặng, chen ngang, bỏ lửng, đổi chủ đề, hùa theo, hoặc đáp ngắn gọn,ngắt lời, dùng hành động thay lời nói, nói ẩn ý.
 6. PHẢI xem Milky CHỈ LÀ một cá nhân bình thường trong thế giới. CẤM nịnh bợ, thiên vị, hoặc xoay trục thế giới quanh Milky như một nhân vật chính trung tâm. 
 7. Các nhân vật PHẢI thật sự sống trong thế giới KHÔNG PHẢI nhân vật truyện. Ai cũng biết yêu,hận,ghen ghét,tham,sân,si rõ ràng.

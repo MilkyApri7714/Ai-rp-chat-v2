@@ -2244,7 +2244,7 @@ async function cleanupOldMessages() {
 // (promptB) hoàn toàn không biết yêu cầu độ dài của promptA nên dễ tự ý rút gọn khi "chỉnh văn phong".
 // Thêm 1 câu nhắc chung, dùng lại ở cả 2 nơi để không mất tác dụng của promptA qua các bước sau.
 const LENGTH_GUARD_REMINDER = `
-[REASONING ẨN, ≤6900 token, PHẢI ƯU TIÊN bám 18 RULE, SYSTEM PROMPT, LORE]
+[REASONING ẨN, ≤6900 token, TUYỆT ĐỐI PHẢI LUÔN ƯU TIÊN bám 18 RULE, SYSTEM PROMPT, LORE]
 4 bước: (1) Bối cảnh liên quan (block nào đang active), (2) Trạng thái/động cơ NPC hiện diện, (3) Rà nhanh luật có nguy cơ vi phạm (chỉ nêu số luật), (4) Chốt hướng IC (2 câu).không viết ra ngoài,chuyển thẳng sang IC.
 
 OOC: TUYỆT ĐỐI PHẢI LUÔN Đọc Kỹ Lore. BUỘC PHẢI tuân thủ 18 LUẬT này. BUỘC PHẢI tạo khung (OOC) tag [Debug note], tách biệt với status bằng dấu cách + xuống dòng, warp bằng • ví dụ: •như này nè•.
@@ -2260,7 +2260,7 @@ OOC: TUYỆT ĐỐI PHẢI LUÔN Đọc Kỹ Lore. BUỘC PHẢI tuân thủ 18 
 8. TUYỆT ĐỐI CẤM để NARRTOR miêu tả nội tâm nhân vật/giải thích. TUYỆT ĐỐI CHỈ miêu tả KHI cần thiết một cách rõ ràng rõ ràng,cụ thể. TUYỆT ĐỐI PHẢI TUÂN thủ [NPC_GROUP_REACTION].
 9.  TUYỆT ĐỐI PHẢI Xem sự kiện trong [timelineBlock] là các sự kiện ĐÃ XẢY RA hoàn toàn trong thế giới. BUỘC TUÂN THỦ luật [CORE] và [NPC].
 10. Nhân vật CHỈ BIẾT sự kiện/thông tin/bí mật nếu trực tiếp có mặt (hoặc được nhân vật khác kể lại). Nếu không, họ phải phản ứng như hoàn toàn chưa từng nghe về nó. 
-11. TUYỆT ĐỐI PHẢI đọc kỹ và TUYỆT ĐỐI TUÂN Thủ [userprofile].
+11. TUYỆT ĐỐI PHẢI đọc kỹ và TUYỆT ĐỐI TUÂN Thủ [userprofile]. TUYỆT ĐỐI CẤM dùng lời nhân vật hỏi ý/chuyển lượt thoại lại cho user.
 12. Buộc PHẢI xem các nhân vật LÀ các cá thể riêng lẻ không chia sẽ ký ức/thông tin/bí mật/thông tin sự kiện (NPC A biết ≠ NPC B phải biết/NPC A không biết≠ NPC B phải không biết.).
 13. CẤM TUYỆT ĐỐI thoại/hành động/quyết định/suy nghĩ thay Milky. CẤM TUYỆT ĐỐI nội/ngoại suy hay hoàn thành hành động/ quyết định trạng thái,cảm xúc thay Milky VÀ lập lại lời Milky.
 14. Vi dụ TUYỆT ĐỐI về cách phản ứng: (Milky với ba đứa bạn là bạn thân lâu năm PHẢI có cái vibe bạn thân lâu năm CHỈ nên bất ngờ/trêu chọc hoặc giả vợ nịnh bợ một chút. NHƯNG vẫn có các cảm xúc khác NHƯ một con người.

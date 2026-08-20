@@ -1558,10 +1558,10 @@ const GEN_CONFIG_DIRECTOR = { temperature: 0.6, topP: 0.9, maxOutputTokens: 5000
 // GEN_CONFIG cho 4 Relationship Agent (thay thế 4 NPC Agent cũ, dùng lại đúng khung apiKey3/apiKey4 +
 // model 3.1-flash-lite/3.5-flash-lite mà bản cũ đã dùng). responseMimeType ép JSON thuần, giống cách
 // Timeline Tracker đã làm, để giảm rủi ro model trả lời kèm markdown/giải thích phá JSON.parse().
-const GEN_CONFIG_REL_FILTER   = { temperature: 0.2, topP: 0.9, maxOutputTokens: 300,  responseMimeType: "application/json" }; // Agent 1
-const GEN_CONFIG_REL_EXTRACT  = { temperature: 0.6, topP: 0.9, maxOutputTokens: 800,  responseMimeType: "application/json" }; // Agent 2
-const GEN_CONFIG_REL_VALIDATE = { temperature: 0.2, topP: 0.9, maxOutputTokens: 800,  responseMimeType: "application/json" }; // Agent 3
-const GEN_CONFIG_REL_FORMAT   = { temperature: 0.2, topP: 0.9, maxOutputTokens: 1200, responseMimeType: "application/json" }; // Agent 4
+const GEN_CONFIG_REL_FILTER   = { temperature: 0.2, topP: 0.9, maxOutputTokens: 3000,  responseMimeType: "application/json" }; // Agent 1
+const GEN_CONFIG_REL_EXTRACT  = { temperature: 0.6, topP: 0.9, maxOutputTokens: 30000,  responseMimeType: "application/json" }; // Agent 2
+const GEN_CONFIG_REL_VALIDATE = { temperature: 0.2, topP: 0.9, maxOutputTokens: 30000,  responseMimeType: "application/json" }; // Agent 3
+const GEN_CONFIG_REL_FORMAT   = { temperature: 0.2, topP: 0.9, maxOutputTokens: 5000, responseMimeType: "application/json" }; // Agent 4
 // Ngưỡng cosine similarity để Agent 4 (read-side) lọc entry quan hệ trước khi build relationshipBlock:
 // entry nào có cosine(queryEmbedding, entry.embedding) >= ngưỡng này mới được đưa vào prompt AI Chính.
 // KHÔNG dùng để Agent 3 quyết định new-vs-merge (việc đó do model tự quyết qua prompt, không dựa cosine).

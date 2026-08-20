@@ -335,10 +335,10 @@ try {
 }
 
 // ---------------- CẤU HÌNH GIỚI HẠN TURN ----------------
-const MAIN_AI_CONTEXT_TURNS = 16;
+const MAIN_AI_CONTEXT_TURNS = 15;
 const MAX_STORED_TURNS = 250;
 const HISTORIAN_READ_TURNS = 130;
-const SUMMARY_MAX_CHARS = 1400;
+const SUMMARY_MAX_CHARS = 800;
 const DIRECTOR_TWIST_MAX_CHARS = 600;
 const EVENT_TURNS_TTL = 3;
 const EVENT_GEN_MODELS = ["gemini-3.5-flash", "gemini-3.6-flash"];
@@ -348,7 +348,7 @@ const TIMELINE_MODELS = ["gemini-3.5-flash", "gemini-3.6-flash"];
 // model fallback).
 const MAIN_AI_MODELS = ["gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash"];
 const TIMELINE_MAX_RAG = 5;
-const TIMELINE_SEMANTIC_THRESHOLD = 0.45;
+const TIMELINE_SEMANTIC_THRESHOLD = 0.55;
 // NÂNG CẤP TIMELINE TRACKER (AI thứ 10): trigger mỗi TIMELINE_TRIGGER_EVERY turn thay vì chạy mọi
 // lúc; đọc TIMELINE_READ_TURNS turn trực tiếp từ Firestore (không phụ thuộc messagesCache, giống hệt
 // cách Sử Gia tự query riêng để tránh lệch index khi tổng tin nhắn thật vượt MESSAGES_QUERY_LIMIT);
@@ -719,8 +719,8 @@ function listenMessages() {
 }
 
 // ---------------- SỔ TAY & SỰ KIỆN ----------------
-const MAX_EVENT_CHUNKS = 7;
-const MAX_NOTEBOOK_ENTRIES = 7;
+const MAX_EVENT_CHUNKS = 4;
+const MAX_NOTEBOOK_ENTRIES = 9;
 const NOTEBOOK_SEMANTIC_THRESHOLD = 0.5;
 let notebookCache = [];
 let eventsCache = [];
@@ -2619,13 +2619,13 @@ async function callGeminiMain(chatHistory, latestUserText) {
     currentSettings.userProfile ? `[USER PROFILE]\n${currentSettings.userProfile}` : "",
     notebookBlock,
     timelineBlock,
-    relationshipBlock,
+    pinnedBlock,
     randomEventBlock,
     twistBlock,
     summaryBlock,
     paceBlock,
     eventsBlock,
-    pinnedBlock,
+    relationshipBlock,
   ].filter(Boolean).join("\n\n");
 
   const trimmedHistory = [...chatHistory];

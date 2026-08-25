@@ -430,7 +430,7 @@ let directorCallCounter = 0;
 // phải số turn) để luân phiên chẵn/lẻ giữa oocNote1 và oocNote2 mỗi lần fire.
 let selfCheckTurnCounter = 0;
 let selfCheckFireCount = 0;
-const SELF_CHECK_INTERVAL = 12;
+const SELF_CHECK_INTERVAL = 10;
 
 // Round-robin index cho AI Chính (xoay vòng qua apiKey1 + 12 key phụ)
 let mainAiKeyIndex = 0;
@@ -1584,7 +1584,7 @@ async function fetchRecentTurnsForTimeline() {
 const GEN_CONFIG_MAIN_AI = { temperature: 1.1, topP: 0.95, maxOutputTokens: 27000 };
 const GEN_CONFIG_REVIEWER = { temperature: 0.4, topP: 0.9, maxOutputTokens: 10000 };
 const GEN_CONFIG_HISTORIAN = { temperature: 0.3, topP: 0.9, maxOutputTokens: 8192 };
-const GEN_CONFIG_DIRECTOR = { temperature: 0.6, topP: 0.9, maxOutputTokens: 5000 };
+const GEN_CONFIG_DIRECTOR = { temperature: 0.6, topP: 0.9, maxOutputTokens: 9000 };
 // GEN_CONFIG cho 4 Relationship Agent (thay thế 4 NPC Agent cũ, dùng lại đúng khung apiKey3/apiKey4 +
 // model 3.1-flash-lite/3.5-flash-lite mà bản cũ đã dùng). responseMimeType ép JSON thuần, giống cách
 // Timeline Tracker đã làm, để giảm rủi ro model trả lời kèm markdown/giải thích phá JSON.parse().

@@ -399,7 +399,7 @@ try {
 const MAIN_AI_CONTEXT_TURNS = 16;
 const MAX_STORED_TURNS = 250;
 const HISTORIAN_READ_TURNS = 130;
-const SUMMARY_MAX_CHARS = 1000;
+const SUMMARY_MAX_CHARS = 600;
 const DIRECTOR_TWIST_MAX_CHARS = 600;
 const EVENT_TURNS_TTL = 3;
 const EVENT_GEN_MODELS = ["gemini-3.5-flash", "gemini-3.6-flash"];
@@ -3376,7 +3376,7 @@ async function cleanupOldMessages() {
 // Thêm 1 câu nhắc chung, dùng lại ở cả 2 nơi để không mất tác dụng của promptA qua các bước sau.
 const LENGTH_GUARD_REMINDER = `
 [REASONING ẨN, ≤6900 token, TUYỆT ĐỐI ƯU TIÊN bám RULESET + LORE]
-*OOC:**TUYỆT ĐỐI CẤM** luôn kết thúc IC bằng cách máy móc hỏi/chuyển TURN cho user. PHẢI ưu tiên thoại ngắn của nhân vật nếu cảnh không cần tả nhiều.*
+OOC:**TUYỆT ĐỐI CẤM** luôn kết thúc IC bằng cách máy móc hỏi/chuyển TURN cho user. PHẢI ƯU Tiên thoại ngắn của nhân vật nếu cảnh không cần tả nhiều. CẤM NARRATOR tổng kết cảnh.
 OOC: BUỘC PHẢI tuân thủ RULESET dưới đây. Tạo khung [Debug note], tách biệt với STATUS bằng dấu cách + xuống dòng, wrap bằng • (vd: •như này nè•).
 
 [Debug note] — tối đa 4 dòng, chỉ tóm tắt kết luận bước 3-4 ở trên, KHÔNG phân tích lại từ đầu:

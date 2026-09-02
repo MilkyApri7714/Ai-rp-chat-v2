@@ -396,7 +396,7 @@ try {
 }
 
 // ---------------- CẤU HÌNH GIỚI HẠN TURN ----------------
-const MAIN_AI_CONTEXT_TURNS = 16;
+const MAIN_AI_CONTEXT_TURNS = 18;
 const MAX_STORED_TURNS = 250;
 const HISTORIAN_READ_TURNS = 130;
 const SUMMARY_MAX_CHARS = 600;
@@ -408,7 +408,7 @@ const TIMELINE_MODELS = ["gemini-3.5-flash", "gemini-3.6-flash"];
 // gemini-3.5-flash (cùng 1 API key đang được round-robin ở lượt gửi này, không đổi key giữa các
 // model fallback).
 const MAIN_AI_MODELS = ["gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash"];
-const TIMELINE_MAX_RAG = 5;
+const TIMELINE_MAX_RAG = 4;
 const TIMELINE_SEMANTIC_THRESHOLD = 0.45;
 // NÂNG CẤP TIMELINE TRACKER (AI thứ 10): trigger mỗi TIMELINE_TRIGGER_EVERY turn thay vì chạy mọi
 // lúc; đọc TIMELINE_READ_TURNS turn trực tiếp từ Firestore (không phụ thuộc messagesCache, giống hệt
@@ -417,7 +417,7 @@ const TIMELINE_SEMANTIC_THRESHOLD = 0.45;
 const TIMELINE_TRIGGER_EVERY = 5;
 const TIMELINE_READ_TURNS = 50;
 const TIMELINE_CONTEXT_ENTRIES = 18;
-const API_TIMEOUT_MS = 78000;
+const API_TIMEOUT_MS = 40000;
 // Timeline Tracker dùng thinkingLevel "high" + tối đa 10 lượt fallback (2 model × 5 key) -> mỗi lượt
 // tốn nhiều thời gian suy luận hơn hẳn các vai trò khác, dễ chạm ngưỡng API_TIMEOUT_MS (40s) hơn.
 // Cho vai trò này 1 ngưỡng timeout riêng, rộng hơn, thay vì dùng chung API_TIMEOUT_MS.

@@ -417,7 +417,7 @@ const TIMELINE_SEMANTIC_THRESHOLD = 0.45;
 const TIMELINE_TRIGGER_EVERY = 5;
 const TIMELINE_READ_TURNS = 50;
 const TIMELINE_CONTEXT_ENTRIES = 18;
-const API_TIMEOUT_MS = 40000;
+const API_TIMEOUT_MS = 78000;
 // Timeline Tracker dùng thinkingLevel "high" + tối đa 10 lượt fallback (2 model × 5 key) -> mỗi lượt
 // tốn nhiều thời gian suy luận hơn hẳn các vai trò khác, dễ chạm ngưỡng API_TIMEOUT_MS (40s) hơn.
 // Cho vai trò này 1 ngưỡng timeout riêng, rộng hơn, thay vì dùng chung API_TIMEOUT_MS.
@@ -3530,7 +3530,7 @@ async function callGeminiMain(chatHistory, latestUserText) {
   let lastErr = null;
   for (const model of MAIN_AI_MODELS) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-    const safeGenConfigMain = sanitizeGenerationConfig(model, GEN_CONFIG_MAIN_AI, "medium");
+    const safeGenConfigMain = sanitizeGenerationConfig(model, GEN_CONFIG_MAIN_AI, "high");
 
     // DEBUG: xuất ra đúng 100% nội dung thật sự gửi cho AI Chính (model + system instruction đầy đủ),
     // để kiểm tra xem yêu cầu độ dài trong promptA có tới nơi nguyên vẹn không, hay bị block nào khác

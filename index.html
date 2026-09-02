@@ -3530,7 +3530,7 @@ async function callGeminiMain(chatHistory, latestUserText) {
   let lastErr = null;
   for (const model of MAIN_AI_MODELS) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-    const safeGenConfigMain = sanitizeGenerationConfig(model, GEN_CONFIG_MAIN_AI, "high");
+    const safeGenConfigMain = sanitizeGenerationConfig(model, GEN_CONFIG_MAIN_AI, "medium");
 
     // DEBUG: xuất ra đúng 100% nội dung thật sự gửi cho AI Chính (model + system instruction đầy đủ),
     // để kiểm tra xem yêu cầu độ dài trong promptA có tới nơi nguyên vẹn không, hay bị block nào khác

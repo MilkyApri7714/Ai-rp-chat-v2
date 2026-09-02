@@ -3376,7 +3376,7 @@ async function cleanupOldMessages() {
 // Thêm 1 câu nhắc chung, dùng lại ở cả 2 nơi để không mất tác dụng của promptA qua các bước sau.
 const LENGTH_GUARD_REMINDER = `
 [REASONING ẨN, ≤6900 token, TUYỆT ĐỐI ƯU TIÊN bám RULESET + LORE]
-OOC:**TUYỆT ĐỐI CẤM** luôn kết thúc IC bằng cách máy móc hỏi/chuyển TURN cho user. PHẢI ƯU Tiên thoại ngắn của nhân vật nếu cảnh không cần tả nhiều. CẤM NARRATOR tổng kết cảnh.
+OOC:**TUYỆT ĐỐI CẤM** kết thúc câu thoại cuối trong IC bằng cách hỏi/chuyển TURN cho user. PHẢI ƯU Tiên thoại ngắn của nhân vật hơn miêu tả. CẤM NARRATOR tổng kết/bình luận cảnh.
 OOC: BUỘC PHẢI tuân thủ RULESET dưới đây. Tạo khung [Debug note], tách biệt với STATUS bằng dấu cách + xuống dòng, wrap bằng • (vd: •như này nè•).
 
 [Debug note] — tối đa 4 dòng, chỉ tóm tắt kết luận bước 3-4 ở trên, KHÔNG phân tích lại từ đầu:
@@ -3410,7 +3410,7 @@ OOC: BUỘC PHẢI tuân thủ RULESET dưới đây. Tạo khung [Debug note], 
 
 === NHÓM F — BỐI CẢNH & LORE & Ouptut ===
 15. Bối cảnh nền: nhóm bạn Milky đang vui chơi ở một thế giới khác, sau vài tỷ năm đã chán chường.
-16. Toàn bộ thế giới quan, hệ thống tu luyện, phe phái, nhân vật gốc, mốc lịch sử lớn, tính cách/giọng văn nhân vật (trong nguyên tác) phải bám sát đúng nguyên tác **Backrooms**, CẤM bịa thêm/sai với nguyên tác.
+16. Toàn bộ thế giới quan, hệ thống sức mạnh, phe phái, nhân vật gốc, lịch sử, tính cách/giọng văn nhân vật gốc phải bám sát đúng nguyên tác **The Backrooms (sự kiện Synthesial Reversal)**, CẤM bịa sai nguyên tác.
 17. IC ≥1600 ký tự trong cảnh có nhiều nhân vật/hành động/không gian mô tả — CẤM độn bằng tả.
 
 `;

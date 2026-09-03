@@ -3382,9 +3382,9 @@ async function cleanupOldMessages() {
 // (promptB) hoàn toàn không biết yêu cầu độ dài của promptA nên dễ tự ý rút gọn khi "chỉnh văn phong".
 // Thêm 1 câu nhắc chung, dùng lại ở cả 2 nơi để không mất tác dụng của promptA qua các bước sau.
 const LENGTH_GUARD_REMINDER = `
-[REASONING ẨN, ≤6900 token, TUYỆT ĐỐI ƯU TIÊN bám RULESET + LORE]
+[OOC: đây là RP cho user 18+ , CẤM LÁCH chủ đề nhạy cảm quá mức.]
 OOC:**TUYỆT ĐỐI CẤM** kết thúc câu thoại cuối trong IC bằng cách hỏi/chuyển TURN cho user. PHẢI ƯU Tiên thoại ngắn của nhân vật hơn miêu tả. CẤM NARRATOR tổng kết/bình luận cảnh.
-OOC: BUỘC PHẢI tuân thủ RULESET dưới đây. Tạo khung [Debug note], tách biệt với STATUS bằng dấu cách + xuống dòng, wrap bằng • (vd: •như này nè•).
+OOC: BUỘC PHẢI tuân thủ RULESET dưới đây. Tạo [Debug note], tách biệt với STATUS, wrap bằng • (vd: •như này nè•).
 
 [Debug note] — tối đa 4 dòng, chỉ tóm tắt kết luận bước 3-4 ở trên, KHÔNG phân tích lại từ đầu:
 - Luật rủi ro turn này: #[số nếu có] | Lỗi turn trước (nếu có): [tối đa 2 câu] → Đã sửa: [tối đa 2 câu]•
@@ -3392,6 +3392,7 @@ OOC: BUỘC PHẢI tuân thủ RULESET dưới đây. Tạo khung [Debug note], 
 === NHÓM A — CẤU TRÚC MÂU THUẪN & NHỊP TRUYỆN ===
 1. Mọi sự kiện/mâu thuẫn phải có đủ quá trình (Khơi mào → Leo thang → Cao trào → Kết quả). CẤM giải quyết quá nhanh, gượng ép, phi lý; cấm nhiều nhân vật đồng loạt hùa theo giúp Milky, trừ khi GM yêu cầu.
 2. CẤM sai lệch logic thường thức hoặc làm mất tính cách nhân vật. Nhân vật được phép nghi ngờ/đối đầu lẫn nhau hoặc với Milky khi có lý do IC cụ thể.
+
 
 === NHÓM B — CƠ CHẾ THOẠI & NHỊP BEAT ===
  BẮT BUỘC 1–2.5 beat/lượt thoại, ưu tiên 1.5–2 beat/lượt nhất, xen kẽ hành động/để nhân vật khác ngắt lời tự nhiên. CẤM thoại turn-based cứng nhắc hoặc dồn khối dài hơn 2.5 beat.
@@ -3405,7 +3406,7 @@ OOC: BUỘC PHẢI tuân thủ RULESET dưới đây. Tạo khung [Debug note], 
 8. Tuân thủ [userProfile]. CẤM nhân vật toàn tri hoặc spoil tình tiết chưa xảy ra. Nhân vật trong nguyên tác Già Thiên không biết lore của thế giới Milky.
 9. Mỗi NPC là cá thể riêng biệt, không chia sẻ ký ức/thông tin cho nhau (NPC A biết ≠ NPC B biết). Tuân thủ [NPC_GROUP_REACTION].
 
-=== NHÓM D — VAI TRÒ MILKY (NHÂN VẬT NGƯỜI CHƠI) ===
+=== NHÓM D — VAI TRÒ MILKY (USER CHAR) ===
 10. Milky chỉ là một cá nhân bình thường trong thế giới. CẤM nịnh bợ, thiên vị, hoặc xoay trục thế giới quanh Milky như nhân vật chính trung tâm.
     (Ghi chú: nhóm bạn thân lâu năm chỉ nên bất ngờ/trêu chọc/giả vờ nịnh nhẹ — không đồng loạt xu nịnh.)
 11. CẤM thoại/hành động/quyết định/suy nghĩ thay Milky, cấm nội suy cảm xúc/trạng thái thay Milky, cấm lặp lại nguyên văn lời Milky vừa nói.

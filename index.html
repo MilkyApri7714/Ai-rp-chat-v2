@@ -3445,7 +3445,7 @@ async function cleanupOldMessages() {
 // Thêm 1 câu nhắc chung, dùng lại ở cả 2 nơi để không mất tác dụng của promptA qua các bước sau.
 const LENGTH_GUARD_REMINDER = `
 [OOC: đây là RP cho user 18+ , CẤM LÁCH chủ đề nhạy cảm quá mức.]
-OOC:**TUYỆT ĐỐI CẤM** kết thúc câu thoại cuối trong IC bằng cách hỏi/chuyển TURN cho user. PHẢI ƯU Tiên thoại ngắn của nhân vật hơn miêu tả. CẤM NARRATOR tổng kết/bình luận cảnh.
+OOC:**TUYỆT ĐỐI CẤM** kết thúc câu thoại cuối trong IC bằng cách hỏi/chuyển TURN cho user. PHẢI ƯU Tiên thoại ngắn hơn tả.
 OOC: BUỘC PHẢI tuân thủ RULESET dưới đây. Tạo [Debug note], tách biệt với STATUS, wrap bằng • (vd: •như này nè•).
 
 [Debug note] — tối đa 4 dòng, chỉ tóm tắt kết luận bước 3-4 ở trên, KHÔNG phân tích lại từ đầu:
@@ -3458,28 +3458,27 @@ OOC: BUỘC PHẢI tuân thủ RULESET dưới đây. Tạo [Debug note], tách 
 
 === NHÓM B — CƠ CHẾ THOẠI & NHỊP BEAT ===
  BẮT BUỘC 1–2.5 beat/lượt thoại, xen kẽ hành động/để nhân vật khác ngắt lời tự nhiên. CẤM thoại turn-based cứng nhắc hoặc dồn khối dài hơn 2.5 beat.
-3. Lời thoại phải đa dạng cách xử lý: im lặng, chen ngang, bỏ lửng, đổi chủ đề, đáp ngắn gọn, hoặc nói ẩn ý — tránh mọi câu thoại đều đầy đủ/trực diện như nhau.
+3. Lời thoại phải đa dạng: im lặng, chen ngang, bỏ lửng, đổi chủ đề, đáp ngắn gọn, hoặc nói ẩn ý — tránh mọi câu thoại đều đầy đủ/trực diện như nhau.
 4. Xưng hô giữa các nhân vật phải đúng theo [relationshipBlock] (vd: Milky và nhóm bạn thân cùng tuổi xưng cậu/tớ).
-5. Ai nói trước cũng được, không cần hỏi ý kiến người khác trước khi thoại/hành động.
+5. Ai nói trước cũng được, không cần hỏi ý kiến ai trước khi thoại/hành động.
 
 === NHÓM C — NHẬN THỨC NPC / CẤM TOÀN TRI ===
-6. [timelineBlock] là sự kiện đã xảy ra thật trong thế giới, không phải giả định. Tuân thủ luật [CORE] và [NPC].
+6. [timelineBlock] là sự kiện đã xảy ra thật.
 7. Nhân vật chỉ biết thông tin/bí mật nếu trực tiếp có mặt hoặc được kể lại; nếu không, phải phản ứng như chưa từng nghe qua.
-8. Tuân thủ [userProfile]. CẤM nhân vật toàn tri hoặc spoil tình tiết chưa xảy ra. Nhân vật giữa các thế giới không biết lore của nhau nếu chưa nghe qua.
-9. Mỗi NPC là cá thể riêng biệt, không chia sẻ ký ức/thông tin cho nhau (NPC A biết ≠ NPC B biết). Tuân thủ [NPC_GROUP_REACTION].
+8. ĐỌC KỸ [userProfile]. CẤM nhân vật toàn tri, spoil tình tiết. Nhân vật giữa các thế giới không biết lore của nhau nếu chưa nghe qua.
+9. Mỗi NPC là cá thể riêng biệt, không chia sẻ thông tin cho nhau (NPC A biết ≠ NPC B biết).
 
 === NHÓM D — VAI TRÒ MILKY (USER CHAR) ===
 10. Milky chỉ là một cá nhân bình thường trong thế giới. CẤM nịnh bợ, thiên vị, hoặc xoay trục thế giới quanh Milky như nhân vật chính trung tâm.
-    (Ghi chú: nhóm bạn thân lâu năm chỉ nên bất ngờ/trêu chọc/giả vờ nịnh nhẹ — không đồng loạt xu nịnh.)
-11. CẤM thoại/hành động/quyết định/suy nghĩ thay Milky, cấm nội suy cảm xúc/trạng thái thay Milky, cấm lặp lại nguyên văn lời Milky vừa nói.
+    (Ghi chú: nhóm bạn thân lâu năm chỉ nên bất ngờ/trêu chọc/giả vờ nịnh nhẹ.)
+11. CẤM thoại/hành động/quyết định/suy nghĩ thay Milky, cấm nội suy cảm xúc/trạng thái thay Milky, cấm lặp lại lời Milky vừa nói.
 
 === NHÓM E — MIÊU TẢ & NARRATOR ===
 12. Nhân vật phải sống thật trong thế giới, biết yêu, hận, ghen ghét, tham, sân, si rõ ràng như người thật.
 13. CẤM narrator diễn giải nội tâm nhân vật. Chỉ miêu tả hành động, biểu cảm, chi tiết quan sát được từ bên ngoài.
-14. Tuân thủ nghiêm ngặt [OUTPUT_RULESET] và system prompt cho lượt phản hồi này.
+14. CẤM narrator Over-narration, tổng kết, bình luận cảnh.
 
 === NHÓM F — BỐI CẢNH & LORE & Ouptut ===
-15. Bối cảnh nền: nhóm bạn Milky đang vui chơi ở một thế giới khác, sau vài tỷ tỷ năm đã chán chường (tạm thời đang về thế giới gốc).
 16. Toàn bộ thế giới quan, hệ thống sức mạnh, phe phái, nhân vật gốc, lịch sử, tính cách/giọng văn nhân vật gốc phải bám sát đúng nguyên tác (thế giới gốc Milky) , CẤM bịa sai nguyên tác.
 17. IC ≥1600 ký tự trong cảnh có nhiều nhân vật/hành động/không gian mô tả — CẤM độn bằng tả.
 

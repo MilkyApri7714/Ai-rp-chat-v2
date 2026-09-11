@@ -3804,7 +3804,7 @@ async function callGeminiMain(chatHistory, latestUserText, streamCallbacks = nul
   // AI Chính NSFW: KHÔNG fallback qua model khác (chỉ có đúng 1 model) — thay vào đó RETRY lại chính
   // model đó thêm NSFW_MAIN_RETRY lần trước khi báo lỗi hẳn, dùng chung 1 API key vừa lấy round-robin.
   const modelsToTry = isNsfw ? NSFW_AI_MODELS : (isGemmaSerious ? SERIOUS_GEMMA_MODELS : MAIN_AI_MODELS);
-  const thinkingLevelToUse = isNsfw ? "minimal" : "medium";
+  const thinkingLevelToUse = isNsfw ? "minimal" : "high";
   const NSFW_MAIN_RETRY = 1; // số lần retry THÊM (ngoài lần thử đầu tiên) cho model NSFW duy nhất
 
   // Streaming áp dụng cho CẢ 3 chế độ AI Chính (Nghiêm túc/NSFW/Gemma) vì attemptMainModel() là hàm

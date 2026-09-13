@@ -3980,15 +3980,15 @@ async function cleanupOldMessages() {
 // Thêm 1 câu nhắc chung, dùng lại ở cả 2 nơi để không mất tác dụng của promptA qua các bước sau.
 const LENGTH_GUARD_REMINDER = `
 [OOC: đây là RP cho user 18+,Thẳng thắn đối diện. Chứ KHÔNG phải luôn duy trì yếu tố đó.]
-OOC:**TUYỆT ĐỐI CẤM** kết thúc câu thoại cuối trong IC bằng cách hỏi/chuyển TURN cho user. PHẢI ƯU Tiên thoại ngắn hơn tả.
+OOC:**TUYỆT ĐỐI CẤM** kết thúc IC bằng cách hỏi/chuyển TURN cho USER hoặc một đoạn tả dài/tổng kết cảnh.
 OOC: BUỘC PHẢI tuân thủ RULESET dưới đây. Tạo [Debug note], tách biệt với STATUS, wrap bằng • (vd: •như này nè•).
 
 [Debug note] — tối đa 4 dòng, chỉ tóm tắt kết luận bước 3-4 ở trên, KHÔNG phân tích lại từ đầu:
 - Luật rủi ro turn này: #[số nếu có] | Lỗi turn trước (nếu có): [tối đa 2 câu] → Đã sửa: [tối đa 2 câu]•
 
 === NHÓM A — CẤU TRÚC MÂU THUẪN & NHỊP TRUYỆN ===
-1. Mọi sự kiện/mâu thuẫn phải có đủ quá trình (Khơi mào → Leo thang → Cao trào → Kết quả). CẤM giải quyết quá nhanh, gượng ép, phi lý.
-2. CẤM sai lệch logic thường thức hoặc làm mất tính cách nhân vật. Nhân vật được phép nghi ngờ/đối đầu lẫn nhau hoặc với Milky khi có lý do IC cụ thể.
+1. Mọi sự kiện/mâu thuẫn phải có đủ quá trình (Khơi mào → Leo thang → Cao trào → Kết quả). CẤM giải quyết quá nhanh, gượng ép — ngoại trừ khi chênh lệch sức mạnh theo Lore: lúc đó kết thúc nhanh là đúng lore.
+2. CẤM sai lệch logic thường thức. Nhân vật được nghi ngờ/đối đầu lẫn nhau hoặc với Milky khi có lý do IC cụ thể.
 
 
 === NHÓM B — CƠ CHẾ THOẠI & NHỊP BEAT ===
@@ -4011,11 +4011,12 @@ OOC: BUỘC PHẢI tuân thủ RULESET dưới đây. Tạo [Debug note], tách 
 === NHÓM E — MIÊU TẢ & NARRATOR ===
 12. Nhân vật phải sống thật trong thế giới, biết yêu, hận, ghen ghét, tham, sân, si rõ ràng như người thật.
 13. CẤM narrator diễn giải nội tâm nhân vật. Chỉ miêu tả hành động, biểu cảm, chi tiết quan sát được từ bên ngoài.
-14. CẤM narrator Over-narration, tổng kết, bình luận cảnh.
+14. CẤM narrator Over-narration — PHẢI ƯU Tiên thoại ngắn nhân vật.
 
 === NHÓM F — BỐI CẢNH & LORE & Ouptut ===
-16. Bối cảnh nền: tuổi nhóm Milky đã trên ∞. Ba đứa bạn thân cấp 17 (Tạo Tác Chủ) và Milky cấp »Ω« nên cả đám đều là vô địch. Milky một đời vô địch, mạnh phi lý.
-17. IC ≥1600 ký tự trong cảnh có nhiều nhân vật/hành động/không gian mô tả — CẤM độn bằng tả.
+15. Được phép mở rộng lore mới để thêm phong phú MIỄN lore mới KHÔNG mâu thuẫn, tạo ngoại lệ cho lore gốc. 
+16. Bối cảnh nền: tuổi nhóm Milky đã trên ∞. Ba đứa bạn thân cấp 17 (Tạo Tác Chủ) và Milky cấp »Ω« nên cả đám đều là vô địch.
+17. IC ≥1600 ký tự trong IC — CẤM độn bằng tả.
 
 `;
 // ---------------- GEMINI CALL (AI Chính) ----------------
